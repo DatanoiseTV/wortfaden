@@ -152,14 +152,49 @@ Three ways to say something, in order of how much they let you say:
   broken German in the mouth of someone already fighting for words. A **new
   sentence** button covers everything else, so length stays unlimited.
   Anything the tiles cannot reach can be handed over to free writing mid-thought.
-- **Schreiben** — free text with word suggestions drawn from the practice
-  vocabulary, plus a letter grid for anyone who cannot use the on-screen
-  keyboard. Unlimited.
+- **Schreiben** — free text with error-tolerant word prediction over a
+  20,000-word dictionary per language, plus a large letter grid for anyone who
+  cannot use the on-screen keyboard. Unlimited.
 
 Whatever is spoken is also shown **full screen in the largest type that fits**,
 because in a hospital room the audio is the unreliable channel — masks,
 machines, distance, a phone lying on a blanket. A nurse reading it off the
 screen from the foot of the bed is the fallback that always works.
+
+### Word prediction
+
+Typing the first letters is enough, and they do not have to be the right ones.
+
+Two findings shape the matching. Substitution errors in aphasia are usually a
+**single distinctive-feature change** — voicing above all (b/p, d/t, g/k, f/v,
+s/z) — and **deletion of word-final segments** is among the most common error
+types, which is what prefix matching already covers.
+
+So rather than inventing a confusion table, German matching runs on the
+**Kölner Phonetik**, the standard German phonetic algorithm, which collapses
+exactly those groups (p/b → 1, d/t → 2, f/v/w → 3, g/k/q → 4, s/z/ß/c → 8) and
+makes ä/e, ie/i and doubled letters stop mattering. English uses a
+spelling-confusion fold instead, because English errors are orthographic more
+than phonetic.
+
+Results arrive in tiers — exact prefix, then phonetic, then one typo — ranked
+inside each tier by how close the spelling actually is and then by word
+frequency. Her own words and the practice vocabulary are pushed to the front,
+and German nouns carry their article.
+
+Measured on the real lists, 1.3 ms mean and 4.3 ms worst case per keystroke:
+
+| typed | first suggestions |
+|---|---|
+| `dablette` | **die Tablette** · Tabletten · das Tablett |
+| `kobf` | **der Kopf** · Köpfe · Kopfschmerzen |
+| `schmertz` | **der Schmerz** · Schmerzen · schmerzt |
+| `fenzter` | **Fenster** · Finsternis · finster |
+| `glaz` | **das Glas** · die Klasse · Gläser |
+| `tirsty` | **thirsty** |
+| `medisin` | **medicine** · medicines · medicinal |
+
+### Follow-up chains
 
 Two tiles carry follow-up chains, because they are the ones that otherwise
 dead-end into questions the person cannot answer:
@@ -302,6 +337,7 @@ js/
   data-phrases.js       30 everyday sentences in rhythmic chunks + 7 series
   data-board.js         communication board: 95 tiles, compose grammar, chains
   data-encouragement.js encouragement lines (adult in tone, deliberately)
+  predict.js            error-tolerant word prediction (Kölner Phonetik)
   store.js              local persistence, Leitner boxes, wellbeing log
   programme.js          the training programme: stages, ladder, variation
   spelling.js           plausible misspelling generator
@@ -314,7 +350,22 @@ js/
   review.js             the PIN-gated review area
   app.js                router, chrome, session engine
 sw.js                   offline cache
+data/
+  lexicon-de.js         20,000 German words, capitalised, with gender
+  lexicon-en.js         20,000 English words
+  LICENSE-DATA.md       CC BY-SA 4.0 attribution for the two lists
+tools/
+  build-lexicon.py      regenerates the lexicons from their upstream sources
 ```
+
+### Licences
+
+The application code is MIT. The two word lists in `data/` are **CC BY-SA
+4.0**, because they are derived from [OpenSubtitles frequency
+data](https://github.com/hermitdave/FrequencyWords) and, for German
+capitalisation and gender, from
+[german-nouns](https://github.com/gambolputty/german-nouns). Details and
+attribution in `data/LICENSE-DATA.md`.
 
 ### Tests
 
@@ -339,6 +390,8 @@ real thing:
   exactly once.
 - The communication board driven end to end: follow-up chains, partner-name
   substitution, the log, and back navigation stepping out one level at a time.
+- Word prediction against deliberately misspelled input in both languages,
+  with per-query timing.
 
 ---
 
@@ -357,3 +410,6 @@ real thing:
   speech is unreliable, and being told by a machine that you said it wrong is
   worse than no feedback. Self-rating drives the spaced repetition instead.
 - The neural voice needs one online session to install, and about 60 MB.
+- The dictionary comes from a subtitle corpus, so it carries a few film names
+  and transliterations in the long tail ("brody", "dexter"). Filtering removes
+  the transcription noise but not every proper noun.

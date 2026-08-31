@@ -18,6 +18,7 @@
   var activeCat = 0;
   var composePicked = null; // which sentence starter is open
   var writeSeed = null;     // a composed sentence handed over to free writing
+  var ART = { m: 'der', f: 'die', n: 'das' };
 
   /* Back steps OUT of where you are, one level at a time, and only leaves the
      board from its own top level. Landing on the home screen because you
@@ -312,64 +313,98 @@
 
   function writeView(lang) {
     var field = h('textarea', {
-      id: 'boardWrite', rows: '3', maxlength: '240',
+      id: 'boardWrite', rows: '2', maxlength: '400',
       'aria-label': t('board_write_label'), placeholder: t('board_write_ph')
     });
     if (writeSeed) { field.value = writeSeed + ' '; writeSeed = null; }
-    var suggestions = h('div', { class: 'chipset' });
 
-    /* Word suggestions come from the practice vocabulary and the board, so a
-       half-remembered spelling still reaches the whole word. */
-    function suggest() {
-      window.UI.clear(suggestions);
+    var sugg = h('div', { class: 'suggestions', role: 'listbox', 'aria-label': t('board_suggestions') });
+    var status = h('p', { class: 'hint' });
+
+    function currentWord() {
       var v = field.value;
-      var last = (v.split(/\s+/).pop() || '').toLowerCase();
-      if (last.length < 2) return;
-      var pool = window.WORDS.map(function (w) { return w[lang].w; })
-        .concat(window.Store.mine.map(function (m) { return m.word; }));
-      var hits = pool.filter(function (w) { return w.toLowerCase().indexOf(last) === 0; }).slice(0, 6);
-      hits.forEach(function (w) {
-        suggestions.appendChild(h('button', {
-          class: 'chip', type: 'button',
-          onclick: function () {
-            var parts = field.value.split(/(\s+)/);
-            parts[parts.length - 1] = w + ' ';
-            field.value = parts.join('');
-            field.focus();
-            suggest();
-          }
-        }, w));
+      var m = /([^\s]*)$/.exec(v);
+      return m ? m[1] : '';
+    }
+
+    function insert(word) {
+      var v = field.value;
+      var cut = v.replace(/[^\s]*$/, '');
+      field.value = cut + word + ' ';
+      field.focus();
+      refresh();
+    }
+
+    function refresh() {
+      window.UI.clear(sugg);
+      var q = currentWord();
+      if (q.length < 1) { status.textContent = ''; return; }
+      if (!window.Predict.loaded(lang)) {
+        status.textContent = t('board_loading_words');
+        window.Predict.load(lang, function () { status.textContent = ''; refresh(); });
+        return;
+      }
+      status.textContent = '';
+      var hits = window.Predict.suggest(q, lang, 6);
+      if (!hits.length) { status.textContent = t('board_no_match'); return; }
+      hits.forEach(function (hit) {
+        sugg.appendChild(h('button', {
+          class: 'suggestion', type: 'button', role: 'option',
+          'aria-label': hit.word,
+          onclick: function () { insert(hit.word); }
+        },
+          hit.gender ? h('span', { class: 'suggestion-art' }, ART[hit.gender] || '') : null,
+          h('span', { class: 'suggestion-word' }, hit.word)));
       });
     }
-    field.addEventListener('input', suggest);
+
+    field.addEventListener('input', refresh);
+    // Start the download while the first letters are still being typed.
+    if (!window.Predict.loaded(lang)) window.Predict.load(lang, function () { refresh(); });
 
     var letters = h('div', { class: 'letters' });
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ'.split('').concat(['␣', '⌫']).forEach(function (c) {
+    var alphabet = lang === 'de' ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    alphabet.split('').forEach(function (c) {
       letters.appendChild(h('button', {
-        class: 'letterkey', type: 'button', 'aria-label': c === '␣' ? t('board_space') : c === '⌫' ? t('board_del') : c,
+        class: 'letterkey', type: 'button', 'aria-label': c,
         onclick: function () {
-          if (c === '⌫') field.value = field.value.slice(0, -1);
-          else if (c === '␣') field.value += ' ';
-          else field.value += (field.value && !/\s$/.test(field.value)) ? c.toLowerCase() : c;
-          suggest();
+          field.value += (field.value && !/\s$/.test(field.value)) ? c.toLowerCase() : c;
+          refresh();
         }
       }, c));
     });
 
-    return h('div', { class: 'stack-sm' },
-      h('div', { class: 'field' }, field, suggestions),
-      h('div', { class: 'btn-row' },
+    function edit(fn) { fn(); refresh(); }
+
+    /* Order matters on a phone: what is written, then the suggestions right
+       under it (they stay above the system keyboard when it opens), then the
+       large letter grid, and the speak button pinned to the bottom edge. */
+    var view = h('div', { class: 'writeview' },
+      h('div', { class: 'writefield' }, field,
         h('button', {
-          class: 'btn btn-primary btn-big', type: 'button',
+          class: 'btn btn-quiet btn-icon writeclear', type: 'button', 'aria-label': t('board_clear'),
+          onclick: function () { edit(function () { field.value = ''; }); field.focus(); }
+        }, h('span', { 'aria-hidden': 'true' }, '✕'))),
+      sugg, status,
+      letters,
+      /* Space and backspace live here rather than at the end of the scrolling
+         alphabet, where they were the first two keys to disappear. */
+      h('div', { class: 'writebar' },
+        h('button', {
+          class: 'btn btn-outline btn-icon', type: 'button', 'aria-label': t('board_del'),
+          onclick: function () { edit(function () { field.value = field.value.slice(0, -1); }); }
+        }, h('span', { 'aria-hidden': 'true' }, '⌫')),
+        h('button', {
+          class: 'btn btn-outline', style: { flex: '0 1 5rem' }, type: 'button', 'aria-label': t('board_space'),
+          onclick: function () { edit(function () { field.value += ' '; }); }
+        }, h('span', { 'aria-hidden': 'true' }, '␣')),
+        h('button', {
+          class: 'btn btn-primary btn-big', style: { flex: '1 1 auto' }, type: 'button',
           onclick: function () { if (field.value.trim()) speakBig(field.value.trim(), null, 'write'); }
-        }, h('span', { 'aria-hidden': 'true' }, '🔊'), t('board_say')),
-        h('button', {
-          class: 'btn btn-outline', type: 'button',
-          onclick: function () { field.value = ''; window.UI.clear(suggestions); field.focus(); }
-        }, t('board_clear'))),
-      h('details', { class: 'disclose' },
-        h('summary', {}, t('board_letters')),
-        letters));
+        }, h('span', { 'aria-hidden': 'true' }, '🔊'), t('board_say'))));
+
+    refresh();
+    return view;
   }
 
   window.Board = {

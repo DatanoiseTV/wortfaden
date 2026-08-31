@@ -8,3 +8,6 @@
 # local scratch
 *.log
 node_modules/
+
+# build-time downloads for tools/build-lexicon.py
+tools/.cache/

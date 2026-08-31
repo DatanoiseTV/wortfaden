@@ -653,11 +653,13 @@ dialog.sheet .card { box-shadow:var(--shadow-lift); }
 
 .composehead { font-size:1.2rem; font-weight:700; margin:.2rem 0 .6rem; }
 
-.letters { display:grid; grid-template-columns:repeat(auto-fill, minmax(3rem, 1fr)); gap:.4rem; margin-top:.8rem; }
+.letters { display:grid; grid-template-columns:repeat(auto-fill, minmax(2.4rem, 1fr)); gap:.35rem; margin-top:.8rem; }
 .letterkey {
-  min-height:52px; border:2px solid var(--line-strong); border-radius:var(--r-sm);
-  background:var(--surface); color:var(--ink); font:inherit; font-size:1.1rem; font-weight:700; cursor:pointer;
+  min-height:46px; border:2px solid var(--line-strong); border-radius:var(--r-sm);
+  background:var(--surface); color:var(--ink); font:inherit; font-size:1.05rem; font-weight:700;
+  cursor:pointer; touch-action:manipulation; padding:0;
 }
+.letterkey:active { background:var(--accent-soft); }
 
 .bigsay {
   position:fixed; inset:0; z-index:70;
@@ -696,3 +698,36 @@ dialog.sheet .card { box-shadow:var(--shadow-lift); }
 .boardgrid.followup { width:100%; max-width:34rem; grid-template-columns:repeat(auto-fill, minmax(min(7.5rem, 46%), 1fr)); }
 
 .composed { font-size:1.3rem; font-weight:650; line-height:1.4; margin:.2rem 0 .9rem; }
+
+/* ---------- Writing with word prediction ----------
+   The suggestions are the primary control here, not a hint strip: they are
+   what turns three wrong letters into the right word, so they get real
+   buttons at a real size. */
+.writeview { display:flex; flex-direction:column; gap:.6rem; min-height:100%; }
+.writefield { position:relative; }
+.writefield textarea { font-size:1.2rem; line-height:1.35; min-height:3.2rem; height:3.2rem; resize:none; padding-right:3.4rem; }
+.writeclear { position:absolute; right:.4rem; top:50%; transform:translateY(-50%); min-width:2.6rem; min-height:2.6rem; padding:0; }
+.writeview .letters { flex:1 1 auto; min-height:0; overflow-y:auto; margin-top:0; align-content:start; }
+.writebar {
+  position:sticky; bottom:0; z-index:2; margin-top:auto; display:flex; gap:.5rem;
+  padding:.6rem 0 max(.2rem, env(safe-area-inset-bottom));
+  background:var(--bg); box-shadow:0 -8px 12px -8px rgba(0,0,0,.18);
+}
+
+/* Two rows of suggestions at most, then scroll: the letter grid underneath
+   must not be pushed off the screen by a good day at the dictionary. */
+.suggestions { display:flex; flex-wrap:wrap; gap:.5rem; max-height:6.4rem; overflow-y:auto; }
+.suggestion {
+  display:inline-flex; align-items:baseline; gap:.35em;
+  min-height:52px; padding:.5em .9em;
+  border:2px solid var(--line-strong); border-radius:var(--r-md);
+  background:var(--surface); color:var(--ink); font:inherit; cursor:pointer;
+  touch-action:manipulation;
+}
+.suggestion:hover { border-color:var(--accent); }
+.suggestion:active { transform:scale(.98); }
+.suggestion-art { color:var(--muted); font-size:.85em; }
+.suggestion-word { font-size:1.15rem; font-weight:650; }
+.suggestions .suggestion:first-child { border-color:var(--accent); background:var(--accent-soft); }
+
+.letterkey.wide { grid-column:span 2; }

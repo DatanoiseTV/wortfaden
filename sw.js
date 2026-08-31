@@ -2,7 +2,8 @@
 var CACHE = 'wortfaden-v2';
 var SHELL = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
-  'js/i18n.js', 'js/data-words.js', 'js/data-phrases.js', 'js/data-board.js', 'js/board.js', 'js/spelling.js', 'js/data-encouragement.js',
+  'js/i18n.js', 'js/data-words.js', 'js/data-phrases.js', 'js/data-board.js', 'js/board.js', 'js/spelling.js',
+  'js/predict.js', 'data/lexicon-de.js', 'data/lexicon-en.js', 'js/data-encouragement.js',
   'js/store.js', 'js/programme.js', 'js/neural-voice.js', 'js/speech.js', 'js/ui.js', 'js/exercises.js', 'js/screens.js',
   'js/review.js', 'js/app.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png'
