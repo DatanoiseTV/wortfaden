@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# editors
+.vscode/
+.idea/
+
+# local scratch
+*.log
+node_modules/

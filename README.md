@@ -165,7 +165,7 @@ dead-end into questions the person cannot answer:
   for and worst to be unable to ask for.
 
 Set the visiting partner's name in Settings and the board says it: *"Ich möchte
-Sylwester sehen"*, not *"Ich möchte dich sehen"*.
+Anna sehen"*, not *"Ich möchte dich sehen"*.
 
 Everything said through the board is written to a **communication log** with a
 timestamp. For someone who cannot speak, that log is the only record of what
