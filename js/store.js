@@ -22,6 +22,8 @@
       name: '',              // first name, used only for the greeting
       partner: '',           // who visits: lets the board say a real name
       onboarded: false,
+      mode: 'both',          // both | board | training — set at setup by whoever helps
+      lockSettings: false,   // hide settings behind the PIN
       neural: { enabled: false, de: null, en: null }   // optional offline Piper voice
     },
     progress: { words: {}, days: {}, totalWords: 0, stage: 1, sessions: 0 },

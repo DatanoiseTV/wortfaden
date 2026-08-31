@@ -158,6 +158,7 @@ body { overflow:hidden; }
 
 main {
   flex:1 1 auto; min-height:0; width:100%; max-width:44rem; margin:0 auto;
+  container-type:inline-size;
   padding:1.1rem max(1rem, env(safe-area-inset-left)) 1.4rem max(1rem, env(safe-area-inset-right));
   overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
 }
@@ -167,6 +168,7 @@ main:focus { outline:none; }
    scroll. */
 main.is-task { padding-bottom:max(.4rem, env(safe-area-inset-bottom)); }
 main.is-task > .exercise, main.is-task > .taskhost { min-height:100%; }
+main.is-task > .boardscreen { height:100%; }
 main.is-task > .taskhost { display:flex; flex-direction:column; }
 main.is-task > .taskhost > .exercise { flex:1 1 auto; }
 .exercise > .actions {
@@ -296,6 +298,8 @@ main.is-task > .taskhost > .exercise { flex:1 1 auto; }
 /* A region that takes the slack and scrolls on its own, so the task frame
    itself stays put. */
 .scrollbox { overflow-y:auto; min-height:0; flex:0 1 auto; -webkit-overflow-scrolling:touch; }
+/* On a phone the wrapper is invisible to layout: the task stays one column. */
+.taskside { display:contents; }
 
 .phrasebox { flex:1 1 auto; display:grid; place-items:center; min-height:0; overflow-y:auto; }
 .phraseline { font-size:clamp(1.3rem, 5.2vw, 2rem); font-weight:680; line-height:1.45; text-align:center; margin:0; }
@@ -389,7 +393,7 @@ main.is-task > .taskhost > .exercise { flex:1 1 auto; }
 :root[data-theme="dark"] .bead.on { color:#14171A; }
 
 .serieslist { display:flex; flex-wrap:wrap; gap:.5rem; align-content:flex-start; }
-.exercise > .serieslist { flex:1 1 auto; }
+.exercise > .serieslist { flex:0 1 auto; overflow-y:auto; min-height:0; }
 .seriesitem {
   padding:.5em .85em; border-radius:var(--r-sm);
   border:2px solid var(--line); background:var(--surface-2);
@@ -541,6 +545,71 @@ dialog.sheet .card { box-shadow:var(--shadow-lift); }
 }
 @keyframes breathe { 0%,100% { transform:scale(.82); } 50% { transform:scale(1.06); } }
 
+/* ---------- Wider screens ----------
+   A phone column pinned in the middle of a tablet wastes most of the glass.
+   From 46rem the task splits into two columns — the picture takes the left,
+   everything you act on takes the right, next to the thumb rather than under
+   a scroll. The board simply gets more tiles per row. */
+@media (min-width: 46rem) {
+  main { max-width:58rem; padding-left:2rem; padding-right:2rem; }
+  main.is-task { max-width:64rem; }
+
+  /* Picture on the left, everything you act on beside it on the right.
+     The wrapper exists so the right-hand column is one flex stack rather than
+     a set of grid rows sharing the picture's height — that sharing is what
+     leaves a hole between the question and the answers. */
+  .exercise:has(> .taskside) {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(0, 1.15fr);
+    column-gap:2.4rem;
+    align-items:center;
+    height:100%;
+  }
+  .taskside {
+    display:flex; flex-direction:column; justify-content:center;
+    gap:.85rem; min-height:0; max-height:100%; overflow-y:auto;
+  }
+  .taskside > .actions { position:static; margin-top:1rem; background:none; }
+  .taskside > .wordchoices { margin-top:0; grid-template-columns:minmax(0, 1fr); }
+  .taskside .answerwrap { display:flex; flex-direction:column; gap:.85rem; }
+  .taskside .answerwrap > .actions { margin-top:.6rem; position:static; background:none; }
+  .exercise:has(> .taskside) > .picture {
+    align-self:center; height:clamp(14rem, 56svh, 30rem); max-height:none;
+  }
+  .exercise:has(> .taskside) > .picture.small { height:clamp(12rem, 44svh, 24rem); }
+  .exercise:has(> .taskside) > .picture .glyph { font-size:min(34svh, 22vw); }
+  .exercise:has(> .taskside) > .picture.small .glyph { font-size:min(26svh, 16vw); }
+
+  /* Tasks without a picture would otherwise stretch a short question across a
+     tall tablet with a void in the middle. Centre them instead. */
+  .exercise:not(:has(> .taskside)) { justify-content:center; max-width:36rem; margin:0 auto; width:100%; }
+  .exercise:not(:has(> .taskside)) > .actions { margin-top:1.4rem; position:static; background:none; }
+
+  .wordchoices { grid-template-columns:repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); }
+  .boardscreen { max-width:none; }
+  .boardgrid { grid-template-columns:repeat(auto-fill, minmax(9.5rem, 1fr)); }
+  .rate { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  .tiles { grid-template-columns:repeat(auto-fill, minmax(min(18rem, 100%), 1fr)); }
+}
+
+@media (min-width: 72rem) {
+  main { max-width:66rem; }
+  main.is-task { max-width:74rem; }
+  .boardgrid { grid-template-columns:repeat(auto-fill, minmax(10.5rem, 1fr)); }
+}
+
+/* Landscape phones are short, not wide: keep one column but shrink the
+   vertical rhythm so the action still lands on screen. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .exercise { gap:.5rem; }
+  .exercise > .picture,
+  .exercise:has(> .taskside) > .picture,
+  .exercise:has(> .taskside) > .picture.small { height:auto; max-height:38svh; }
+  .picture .glyph { font-size:min(30svh, 18vw); }
+  .card { padding:.9rem; }
+  .answer .answer-word { font-size:1.5rem; }
+}
+
 @media print {
   .topbar, .footer, .btn { display:none !important; }
   body { background:#fff; color:#000; }
@@ -552,9 +621,9 @@ dialog.sheet .card { box-shadow:var(--shadow-lift); }
    because in a hospital room the audio is the unreliable channel. */
 .btn-talk { background:var(--calm-soft); border-color:var(--calm); color:var(--calm-ink); }
 
-.boardtabs { display:flex; gap:.5rem; overflow-x:auto; padding-bottom:.3rem; -webkit-overflow-scrolling:touch; }
+.boardtabs { display:flex; flex-wrap:wrap; gap:.5rem; padding-bottom:.3rem; }
 .boardtab {
-  flex:0 0 auto; min-height:48px; padding:.5em 1em;
+  flex:0 1 auto; min-height:44px; padding:.4em .8em; font-size:max(.85rem, 15px);
   border:2px solid var(--line-strong); border-radius:999px;
   background:var(--surface); color:var(--ink); font:inherit; font-weight:600; cursor:pointer;
   white-space:nowrap;
@@ -606,10 +675,17 @@ dialog.sheet .card { box-shadow:var(--shadow-lift); }
 
 /* The board is a fixed frame: controls pinned top and bottom, only the tiles
    scroll. Hunting for a scrolled-away "Yes" is not acceptable here. */
-.boardscreen { display:flex; flex-direction:column; height:100%; min-height:0; gap:.6rem; }
-.boardhead { flex:0 0 auto; display:flex; flex-direction:column; gap:.55rem;
-  position:sticky; top:0; z-index:3; background:var(--bg); padding-bottom:.35rem; }
-.boardbody { flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:.3rem; }
+.boardscreen { display:flex; flex-direction:column; height:100%; min-height:0; max-height:100%; gap:.6rem; }
+/* Navigation, not content: it does not scale with the reading text size, or
+   nine categories at 26 px would fill the entire screen before a single tile
+   is visible. Still never below the 44 px target. */
+.boardhead { flex:0 1 auto; display:flex; flex-direction:column; gap:.5rem;
+  position:sticky; top:0; z-index:3; background:var(--bg); padding-bottom:.35rem;
+  max-height:min(46svh, 22rem); overflow-y:auto; }
+.boardhead .btn-row > .btn { flex:1 1 5.5rem; min-height:48px; font-size:max(.85rem, 15px); padding:.5em .7em; }
+/* flex-basis 0, not auto: with auto the grid's content height wins and the
+   whole page scrolls instead of just the tiles. */
+.boardbody { flex:1 1 0; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:.3rem; }
 .boardfoot { flex:0 0 auto; padding-bottom:max(.2rem, env(safe-area-inset-bottom)); }
 
 /* A follow-up turns the overlay into a small board of its own: the phrase
@@ -618,3 +694,5 @@ dialog.sheet .card { box-shadow:var(--shadow-lift); }
 .bigsay.has-followup .bigsay-text { max-height:none; font-size:2.4rem; }
 .bigsay-q { margin:0; font-size:1.25rem; font-weight:660; color:var(--muted); text-align:center; }
 .boardgrid.followup { width:100%; max-width:34rem; grid-template-columns:repeat(auto-fill, minmax(min(7.5rem, 46%), 1fr)); }
+
+.composed { font-size:1.3rem; font-weight:650; line-height:1.4; margin:.2rem 0 .9rem; }

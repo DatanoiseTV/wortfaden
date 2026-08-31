@@ -17,14 +17,20 @@
   var mode = 'tiles';       // tiles | compose | write
   var activeCat = 0;
   var composePicked = null; // which sentence starter is open
+  var writeSeed = null;     // a composed sentence handed over to free writing
 
   /* Back steps OUT of where you are, one level at a time, and only leaves the
      board from its own top level. Landing on the home screen because you
      wanted to get out of a sentence starter is the wrong answer under
      pressure. */
   function stepBack(go) {
-    if (mode === 'compose' && composePicked !== null) { composePicked = null; window.App.render(); return; }
+    if (mode === 'compose') {
+      if (composeStage === 'next') { composeStage = composeParts.length ? 'connector' : 'starter'; window.App.render(); return; }
+      if (composeStage === 'connector') { composeStage = 'starter'; window.App.render(); return; }
+      if (composeParts.length) { composeParts = []; window.App.render(); return; }
+    }
     if (mode !== 'tiles') { mode = 'tiles'; window.App.render(); return; }
+    if ((window.Store.settings.mode || 'both') === 'board') return;   // the board is the whole app
     go('home');
   }
 
@@ -156,39 +162,150 @@
     return wrap;
   }
 
+  /* The sentence builder keeps a running sentence rather than firing one off.
+     "Mehr sagen" adds a connector and another clause, so the same two taps
+     chain into as long an utterance as someone wants. Capping an adult at one
+     clause is the difference between operating a device and talking. */
+  /* Parts are {clause} or {conn} or {stop}. Rendering handles the punctuation
+     and the capitalisation so a chained clause reads as one real sentence. */
+  var composeParts = [];
+  var composeStage = 'starter'; // starter | next | connector
+
+  function lower(str) {
+    // German nouns keep their capital; our clause openers are all pronouns,
+    // verbs or question words, so lowering the first letter is right.
+    return str.charAt(0).toLowerCase() + str.slice(1);
+  }
+
+  function endPunct(clause) {
+    return /^(Wann|Wo|Warum|Was|Wie|When|Where|Why|What|How)\b/i.test(clause) ? '?' : '.';
+  }
+
+  function composeText() {
+    var out = '', pendingConn = null, startOfSentence = true;
+    composeParts.forEach(function (p) {
+      if (p.stop) {
+        if (out) out += endPunct(lastClause(out));
+        pendingConn = null;
+        startOfSentence = true;
+        out += ' ';
+        return;
+      }
+      if (p.conn) { pendingConn = p; return; }
+      if (startOfSentence) {
+        out += p.clause;
+        startOfSentence = false;
+      } else if (pendingConn) {
+        out += (pendingConn.comma ? ',' : '') + ' ' + pendingConn.w + ' ' + lower(p.clause);
+        pendingConn = null;
+      } else {
+        out += ' ' + lower(p.clause);
+      }
+    });
+    out = out.replace(/\s+/g, ' ').trim();
+    if (!out) return '';
+    if (!/[.?!]$/.test(out)) out += endPunct(lastSentence(out));
+    return out;
+  }
+
+  function lastSentence(txt) {
+    var parts = txt.split(/[.?!]\s*/);
+    return parts[parts.length - 1] || txt;
+  }
+  function lastClause(txt) { return lastSentence(txt); }
+
   function composeView(lang) {
     var starters = window.COMPOSE[lang];
     var host = h('div', { class: 'stack-sm' });
 
     function paint() {
       window.UI.clear(host);
-      if (composePicked === null) {
-        host.appendChild(h('p', { class: 'hint', text: t('board_compose_hint') }));
+
+      if (composeParts.length) {
+        host.appendChild(h('div', { class: 'card answer', style: { textAlign: 'left' } },
+          h('div', { class: 'eyebrow' }, t('board_sentence_so_far')),
+          h('p', { class: 'composed' }, composeText()),
+          h('div', { class: 'btn-row' },
+            h('button', {
+              class: 'btn btn-primary', type: 'button',
+              onclick: function () { speakBig(composeText(), null, 'compose'); }
+            }, h('span', { 'aria-hidden': 'true' }, '🔊'), t('board_say')),
+            h('button', {
+              class: 'btn btn-outline', type: 'button',
+              onclick: function () { composeStage = 'connector'; paint(); }
+            }, h('span', { 'aria-hidden': 'true' }, '＋'), t('board_more')),
+            h('button', {
+              class: 'btn btn-quiet btn-icon', type: 'button', 'aria-label': t('board_undo'),
+              onclick: function () {
+                composeParts.pop();
+                // A trailing connector or full stop is not a thing you can say.
+                while (composeParts.length && !composeParts[composeParts.length - 1].clause) composeParts.pop();
+                composeStage = composeParts.length ? 'connector' : 'starter';
+                paint();
+              }
+            }, h('span', { 'aria-hidden': 'true' }, '⌫')),
+            h('button', {
+              class: 'btn btn-quiet btn-icon', type: 'button', 'aria-label': t('board_restart'),
+              onclick: function () { composeParts = []; composeStage = 'starter'; paint(); }
+            }, h('span', { 'aria-hidden': 'true' }, '✕')))));
+      }
+
+      if (composeStage === 'connector') {
+        host.appendChild(h('p', { class: 'hint', text: t('board_more_hint') }));
+        var conns = h('div', { class: 'boardgrid' });
+        window.CONNECTORS[lang].forEach(function (c) {
+          conns.appendChild(h('button', {
+            class: 'boardtile is-text' + (c.newSentence ? ' tone-yes' : ''), type: 'button',
+            onclick: function () {
+              composeParts.push(c.newSentence ? { stop: true } : { conn: true, w: c.w, comma: c.comma });
+              composeStage = 'starter';
+              paint();
+            }
+          }, h('span', { class: 'boardtile-label' }, c.newSentence ? t('board_newSentence') : c.w)));
+        });
+        host.appendChild(conns);
+        /* Anything the tiles cannot reach is still reachable: hand the
+           sentence over to free writing rather than ending the thought. */
+        host.appendChild(h('button', {
+          class: 'btn btn-outline btn-block', type: 'button',
+          onclick: function () {
+            writeSeed = composeText().replace(/[.?!]$/, '');
+            composeParts = []; composeStage = 'starter';
+            mode = 'write'; window.App.render();
+          }
+        }, h('span', { 'aria-hidden': 'true' }, '⌨️'), t('board_toWrite')));
+        return;
+      }
+
+      if (composeStage === 'starter') {
+        if (!composeParts.length) host.appendChild(h('p', { class: 'hint', text: t('board_compose_hint') }));
         var list = h('div', { class: 'boardgrid wide' });
         starters.forEach(function (st, i) {
           list.appendChild(h('button', {
             class: 'boardtile is-text', type: 'button',
-            onclick: function () { composePicked = i; paint(); }
+            onclick: function () { composePicked = i; composeStage = 'next'; paint(); }
           }, h('span', { class: 'boardtile-label' }, st.s + ' …')));
         });
         host.appendChild(list);
         return;
       }
-      var st = starters[composePicked];
-      host.appendChild(h('p', { class: 'composehead' }, st.s + ' …'));
+
+      var st2 = starters[composePicked];
+      host.appendChild(h('p', { class: 'composehead' }, st2.s + ' …'));
       var list2 = h('div', { class: 'boardgrid wide' });
-      st.next.forEach(function (n) {
+      st2.next.forEach(function (n) {
         list2.appendChild(h('button', {
           class: 'boardtile is-text', type: 'button',
           onclick: function () {
-            var sentence = st.s + ' ' + n;
-            if (!/[.?!]$/.test(sentence)) sentence += /^(Wann|Wo|Warum|When|Where|Why|What)/.test(st.s) ? '?' : '.';
-            speakBig(sentence, null, 'compose');
+            composeParts.push({ clause: st2.s + ' ' + n });
+            composeStage = 'connector';
+            paint();
           }
         }, h('span', { class: 'boardtile-label' }, n)));
       });
       host.appendChild(list2);
     }
+
     paint();
     return host;
   }
@@ -198,6 +315,7 @@
       id: 'boardWrite', rows: '3', maxlength: '240',
       'aria-label': t('board_write_label'), placeholder: t('board_write_ph')
     });
+    if (writeSeed) { field.value = writeSeed + ' '; writeSeed = null; }
     var suggestions = h('div', { class: 'chipset' });
 
     /* Word suggestions come from the practice vocabulary and the board, so a
@@ -269,7 +387,11 @@
         return h('button', {
           class: 'btn ' + (mode === id ? 'btn-primary' : 'btn-outline'), type: 'button',
           'aria-pressed': String(mode === id),
-          onclick: function () { mode = id; composePicked = null; window.App.render(); }
+          onclick: function () {
+            mode = id;
+            composePicked = null; composeParts = []; composeStage = 'starter';
+            window.App.render();
+          }
         }, h('span', { 'aria-hidden': 'true' }, icon), label);
       }
 
@@ -300,11 +422,13 @@
         h('h1', { text: t('board_title'), class: 'sr-only' }),
         head,
         h('div', { class: 'boardbody' }, body),
-        h('div', { class: 'boardfoot' },
-          h('button', {
-            class: 'btn btn-quiet btn-block', type: 'button',
-            onclick: function () { stepBack(go); }
-          }, h('span', { 'aria-hidden': 'true' }, '←'), t('back'))));
+        (mode !== 'tiles' || (window.Store.settings.mode || 'both') !== 'board')
+          ? h('div', { class: 'boardfoot' },
+            h('button', {
+              class: 'btn btn-quiet btn-block', type: 'button',
+              onclick: function () { stepBack(go); }
+            }, h('span', { 'aria-hidden': 'true' }, '←'), t('back')))
+          : null);
     }
   };
 })();

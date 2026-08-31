@@ -54,20 +54,73 @@
             }, 'English')));
           return;
         }
-        host.appendChild(h('h1', { text: t('ob_text_q') }));
-        host.appendChild(h('p', { class: 'ob-sample', text: t('ob_text_sample') }));
-        var row = h('div', { class: 'segmented' });
-        [['s', t('set_text_s')], ['m', t('set_text_m')], ['l', t('set_text_l')], ['xl', t('set_text_xl')]].forEach(function (o) {
-          row.appendChild(h('button', {
-            class: 'btn btn-outline', type: 'button',
-            'aria-pressed': String(window.Store.settings.textSize === o[0]),
-            onclick: function () { window.Store.set('settings.textSize', o[0]); window.App.render(); }
-          }, o[1]));
-        });
-        host.appendChild(row);
+        if (stepIdx === 2) {
+          host.appendChild(h('h1', { text: t('ob_text_q') }));
+          host.appendChild(h('p', { class: 'ob-sample', text: t('ob_text_sample') }));
+          var row = h('div', { class: 'segmented' });
+          [['s', t('set_text_s')], ['m', t('set_text_m')], ['l', t('set_text_l')], ['xl', t('set_text_xl')]].forEach(function (o) {
+            row.appendChild(h('button', {
+              class: 'btn btn-outline', type: 'button',
+              'aria-pressed': String(window.Store.settings.textSize === o[0]),
+              onclick: function () { window.Store.set('settings.textSize', o[0]); window.App.render(); }
+            }, o[1]));
+          });
+          host.appendChild(row);
+          host.appendChild(h('div', { class: 'actions stack-sm' },
+            h('button', {
+              class: 'btn btn-primary btn-block btn-big', type: 'button',
+              onclick: function () { stepIdx = 3; window.Onboarding.stepFor = 3; paint(); }
+            }, t('weiter')),
+            h('p', { class: 'hint center', text: t('ob_helper') })));
+          return;
+        }
+
+        /* The last two questions are for whoever is setting the phone up.
+           Sometimes practising is simply too much and the board alone is the
+           right answer — that call belongs to the ward, not to the app. */
+        if (stepIdx === 3) {
+          host.appendChild(h('h1', { text: t('ob_mode_q') }));
+          host.appendChild(h('p', { class: 'hint', text: t('ob_mode_helper') }));
+          var modes = h('div', { class: 'stack-sm' });
+          [['both', '🤝'], ['board', '💬'], ['training', '🎯']].forEach(function (m) {
+            modes.appendChild(h('button', {
+              class: 'btn btn-outline btn-block btn-big', type: 'button',
+              'aria-pressed': String(window.Store.settings.mode === m[0]),
+              style: { flexDirection: 'column', gap: '.15em', minHeight: 'calc(var(--tap) + 18px)' },
+              onclick: function () {
+                window.Store.set('settings.mode', m[0]);
+                stepIdx = 4; window.Onboarding.stepFor = 4; paint();
+              }
+            },
+              h('span', {}, h('span', { 'aria-hidden': 'true' }, m[1] + ' '), t('mode_' + m[0])),
+              h('span', { class: 'btn-hero-sub' }, t('mode_' + m[0] + '_d'))));
+          });
+          host.appendChild(modes);
+          host.appendChild(h('p', { class: 'hint', text: t('mode_board_note') }));
+          return;
+        }
+
+        host.appendChild(h('h1', { text: t('ob_lock_q') }));
+        host.appendChild(h('p', { class: 'hint', text: t('ob_lock_d') }));
+        var p1 = h('input', { type: 'password', id: 'obPin', inputmode: 'numeric', autocomplete: 'new-password' });
+        var err = h('p', { class: 'err hidden' });
+        host.appendChild(h('div', { class: 'field' }, h('label', { for: 'obPin' }, t('ad_enterPin')), p1, err));
         host.appendChild(h('div', { class: 'actions stack-sm' },
-          h('button', { class: 'btn btn-primary btn-block btn-big', type: 'button', onclick: finish }, t('ob_start')),
-          h('p', { class: 'hint center', text: t('ob_helper') })));
+          h('button', {
+            class: 'btn btn-primary btn-block btn-big', type: 'button',
+            onclick: function () {
+              if (p1.value.length < 4) { err.textContent = t('ad_pinShort'); err.classList.remove('hidden'); return; }
+              window.Store.setPin(p1.value).then(function () {
+                window.Store.set('settings.lockSettings', true);
+                finish();
+              });
+            }
+          }, t('ob_lock_yes')),
+          h('button', {
+            class: 'btn btn-outline btn-block', type: 'button',
+            onclick: function () { window.Store.set('settings.lockSettings', false); finish(); }
+          }, t('ob_lock_no')),
+          h('p', { class: 'hint center', text: t('ad_notSecurity') })));
       }
 
       // Re-entering the screen after a re-render should keep the step.
@@ -295,6 +348,19 @@
           ], function (v) { set('theme', v); }),
           toggleRow(t('set_contrast'), t('set_contrast_d'), s.contrast, function (v) { set('contrast', v); }),
           toggleRow(t('set_motion'), t('set_motion_d'), s.reduceMotion, function (v) { set('reduceMotion', v); })
+        ),
+
+        h('section', { class: 'card' },
+          h('h2', { text: t('set_mode') }),
+          segmented(t('set_mode'), s.mode || 'both', [
+            { v: 'both', l: t('mode_both') }, { v: 'board', l: t('mode_board') }, { v: 'training', l: t('mode_training') }
+          ], function (v) { set('mode', v); }),
+          h('p', { class: 'hint', text: t('mode_' + (s.mode || 'both') + '_d') }),
+          (s.mode === 'training') ? h('p', { class: 'hint', text: t('mode_board_note') }) : null,
+          toggleRow(t('set_lock'), t('set_unlock_hint'), s.lockSettings, function (v) {
+            if (v && !window.Store.hasPin()) { go('review'); return; }   // set a PIN first
+            set('lockSettings', v);
+          })
         ),
 
         h('section', { class: 'card' },

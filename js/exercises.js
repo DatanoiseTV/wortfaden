@@ -44,6 +44,25 @@
 
   function hasVoice() { return window.Speech.available(window.UI.lang()); }
 
+  /* Groups everything that is not the picture into one wrapper, so a wide
+     screen can put the picture beside the task instead of leaving a column of
+     empty glass. On phones the wrapper is `display: contents` and changes
+     nothing at all. Builders call this after every (re)build. */
+  function pack(host) {
+    var pic = null, rest = [];
+    Array.prototype.slice.call(host.children).forEach(function (c) {
+      if (!pic && c.classList && c.classList.contains('picture')) pic = c;
+      else rest.push(c);
+    });
+    if (!pic) return host;
+    var side = h('div', { class: 'taskside' });
+    rest.forEach(function (c) { side.appendChild(c); });
+    window.UI.clear(host);
+    host.appendChild(pic);
+    host.appendChild(side);
+    return host;
+  }
+
   /* The neural voice needs ~650 ms per word. Warming it while the person is
      still reading the task makes the tap feel instant. */
   function warm(texts) { window.Speech.prefetch(texts, window.UI.lang()); }
@@ -168,6 +187,7 @@
               window.UI.clear(host);
               host.appendChild(pictureEl(item, 'small'));
               host.appendChild(answerPanel(item, nextButton(function () { ctx.done(tries === 1 ? 'yes' : 'help'); })));
+              pack(host);
             }, 550);
           } else {
             btn.classList.add('is-off');
@@ -187,7 +207,7 @@
       host.appendChild(pictureEl(item));
     }
     host.appendChild(grid);
-    return { el: host };
+    return { el: pack(host) };
   }
 
   /* ---------- Orthographic discrimination: which spelling is right ----------
@@ -220,6 +240,7 @@
               window.UI.clear(host);
               host.appendChild(pictureEl(item, 'small'));
               host.appendChild(answerPanel(item, nextButton(function () { ctx.done(tries === 1 ? 'yes' : 'help'); })));
+              pack(host);
             }, 550);
           } else {
             btn.classList.add('is-off');
@@ -237,7 +258,7 @@
     if (lb) host.appendChild(h('div', { class: 'btn-row' }, lb));
     host.appendChild(grid);
     if (hasVoice()) window.Speech.speak(item.w);
-    return { el: host };
+    return { el: pack(host) };
   }
 
   /* ---------- Production: say it, then see it ---------- */
@@ -287,6 +308,7 @@
             class: 'btn btn-outline btn-big', type: 'button',
             onclick: function () { window.Store.recordAttempt(item.id, 'not', step.taskType); ctx.done('not'); }
           }, h('span', { 'aria-hidden': 'true' }, '\ud83c\udf31'), t('was_hard'))))));
+      pack(host);
     }
 
     host.appendChild(h('p', { class: 'prompt' }, t('say_now')));
@@ -300,7 +322,7 @@
       }, h('span', { 'aria-hidden': 'true' }, '👁️'), t('reveal_word'))));
 
     if (step.cued) hintBtn.click();   // the cued rung hands out the first hint for free
-    return { el: host };
+    return { el: pack(host) };
   }
 
   /* ---------- Semantic features, read rather than quizzed ---------- */
@@ -328,6 +350,7 @@
           window.Store.recordAttempt(item.id, 'help', step.taskType);
           ctx.done('help');
         })));
+        pack(host);
         return;
       }
       var q = qs[i]; i++;
@@ -342,7 +365,7 @@
     host.appendChild(card);
     host.appendChild(h('div', { class: 'actions' }, btn));
     step_();
-    return { el: host };
+    return { el: pack(host) };
   }
 
   /* ---------- Sounds and syllables (free choice only) ---------- */
@@ -370,6 +393,7 @@
             window.Store.recordAttempt(item.id, 'help', step.taskType);
             ctx.done('help');
           })));
+          pack(host);
         }
       }
     }, h('span', { 'aria-hidden': 'true' }, '👏'), t('sound_syll_tap'));
@@ -380,7 +404,7 @@
     if (lb) host.appendChild(h('div', { class: 'btn-row' }, lb));
     host.appendChild(beads);
     host.appendChild(h('div', { class: 'actions' }, tapBtn));
-    return { el: host };
+    return { el: pack(host) };
   }
 
   /* ---------- Automatic series ---------- */

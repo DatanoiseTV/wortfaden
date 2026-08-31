@@ -137,8 +137,15 @@ Three ways to say something, in order of how much they let you say:
 
 - **Schnell** — 95 tiles across nine categories: answers, needs, pain,
   feelings, closeness, the day, agency, questions, people. One tap.
-- **Satz bauen** — a starter plus a continuation. Two taps reach roughly 200
-  utterances, and the grammar stays the person's own choice.
+- **Satz bauen** — a starter plus a continuation, then **"Mehr sagen"** to
+  chain another clause, and another, with no limit. Two taps per clause.
+  Only connectors that stay grammatical under plain concatenation are offered:
+  German gets *und / aber / oder / denn*, because *weil* and *obwohl* need the
+  verb at the end and *dann / deshalb* need inversion — neither is something a
+  flat join can produce, and shipping "weil ich kann nicht sprechen" would put
+  broken German in the mouth of someone already fighting for words. A **new
+  sentence** button covers everything else, so length stays unlimited.
+  Anything the tiles cannot reach can be handed over to free writing mid-thought.
 - **Schreiben** — free text with word suggestions drawn from the practice
   vocabulary, plus a letter grid for anyone who cannot use the on-screen
   keyboard. Unlimited.
@@ -235,6 +242,27 @@ that is: a **privacy screen, not security**. The data is unencrypted in
 job is to keep error rates and statistics out of the practising person's way —
 seeing your own failure rate mid-recovery is discouraging and clinically
 unhelpful. It is reachable from Settings by tapping the lock icon five times.
+
+---
+
+## Setting it up for someone
+
+The last two questions in the setup are for whoever hands the phone over — a
+nurse, a doctor, a partner:
+
+**What should the app do?**
+
+| | |
+|---|---|
+| **Beides** | Communication and practice. The default. |
+| **Nur Verständigung** | No training at all. The board *is* the app: it opens straight into it, and there is nowhere else to go. Sometimes practising is simply too much, and that call belongs to the ward. |
+| **Nur Üben** | Practice without the board. |
+
+**Protect the settings?** If yes, a PIN is set and the gear then needs two
+taps plus that PIN. This keeps configuration out of reach during practice
+without hiding it from the people who need it. Same PIN as the review area.
+
+Both are changeable later in Settings.
 
 ---
 

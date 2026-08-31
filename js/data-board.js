@@ -439,3 +439,38 @@ window.BOARD_CHAINS = {
     ]
   }
 };
+
+/* Connectors for the sentence builder.
+ *
+ * Without these, composing ends after one clause and the person is capped at
+ * "I would like to get up." — a request, not a thought.
+ *
+ * Only connectors that are grammatical under plain concatenation are offered.
+ * German is the constraint: "und / aber / oder / denn" keep verb-second order,
+ * so "ich möchte aufstehen und ich brauche frische Luft" is correct. "weil"
+ * and "obwohl" would need the verb at the end, and "dann / deshalb / außerdem"
+ * need inversion — neither is something a flat join can produce, and shipping
+ * "weil ich kann nicht sprechen" would put broken German in the mouth of
+ * someone already fighting for words.
+ *
+ * `newSentence` covers everything else: a full stop is always grammatical, so
+ * the length of what can be said stays unlimited.
+ */
+window.CONNECTORS = {
+  de: [
+    { w: 'und', comma: false },
+    { w: 'aber', comma: true },
+    { w: 'oder', comma: false },
+    { w: 'denn', comma: true },
+    { newSentence: true }
+  ],
+  en: [
+    { w: 'and', comma: false },
+    { w: 'but', comma: true },
+    { w: 'or', comma: false },
+    { w: 'because', comma: false },
+    { w: 'so', comma: true },
+    { w: 'and then', comma: false },
+    { newSentence: true }
+  ]
+};

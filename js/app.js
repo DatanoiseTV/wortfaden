@@ -16,8 +16,13 @@
 
   var current = { name: 'home', params: null, cleanup: null };
   var session = null;   // live session state, so the chrome can show progress
+  var settingsUnlocked = false;   // resets on reload, deliberately
+
+  function mode() { return window.Store.settings.mode || 'both'; }
 
   function go(name, params) {
+    // In board-only mode there is no home screen to go back to: the board is it.
+    if (name === 'home' && mode() === 'board') name = 'board';
     if (current.cleanup) { try { current.cleanup(); } catch (e) {} }
     window.Speech.stop();
     if (name !== 'session') session = null;
@@ -70,7 +75,7 @@
 
     if (bare) return;
 
-    if (current.name !== 'home') {
+    if (current.name !== 'home' && !(current.name === 'board' && mode() === 'board')) {
       brandSlot.appendChild(h('button', {
         class: 'btn btn-quiet btn-icon', type: 'button', 'aria-label': t('back'),
         onclick: function () {
@@ -79,7 +84,7 @@
         }
       }, h('span', { 'aria-hidden': 'true' }, '←')));
     }
-    if (current.name !== 'board') {
+    if (current.name !== 'board' && mode() !== 'training') {
       actions.appendChild(h('button', {
         class: 'btn btn-talk btn-icon', type: 'button', 'aria-label': t('board_open'),
         onclick: function () { go('board'); }
@@ -93,11 +98,42 @@
         window.UI.announce(t('langName'));
       }
     }, window.UI.lang() === 'de' ? 'EN' : 'DE'));
+    var gearTaps = 0, gearTimer = null;
     actions.appendChild(h('button', {
       class: 'btn btn-quiet btn-icon', type: 'button', 'aria-label': t('nav_settings'),
-      onclick: function () { go('settings'); }
+      onclick: function () {
+        if (!window.Store.settings.lockSettings || settingsUnlocked) return go('settings');
+        // Locked: two taps open the PIN prompt, so a stray tap does nothing.
+        gearTaps++;
+        if (gearTimer) clearTimeout(gearTimer);
+        gearTimer = setTimeout(function () { gearTaps = 0; }, 900);
+        if (gearTaps < 2) return;
+        gearTaps = 0;
+        askSettingsPin();
+      }
     }, h('span', { 'aria-hidden': 'true' }, '⚙')));
 
+  }
+
+  function askSettingsPin() {
+    window.UI.sheet(function (body, close) {
+      var pin = h('input', { type: 'password', id: 'setPin', inputmode: 'numeric', autocomplete: 'current-password' });
+      var err = h('p', { class: 'err hidden' });
+      function tryIt() {
+        window.Store.checkPin(pin.value).then(function (ok) {
+          if (!ok) { err.textContent = t('ad_pinWrong'); err.classList.remove('hidden'); pin.value = ''; pin.focus(); return; }
+          settingsUnlocked = true;
+          close();
+          go('settings');
+        });
+      }
+      pin.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryIt(); });
+      body.appendChild(h('h2', { text: t('set_unlock_q') }));
+      body.appendChild(h('div', { class: 'field' }, pin, err));
+      body.appendChild(h('div', { class: 'btn-row', style: { marginTop: '1rem' } },
+        h('button', { class: 'btn btn-primary', type: 'button', onclick: tryIt }, t('ad_unlock')),
+        h('button', { class: 'btn btn-outline', type: 'button', onclick: close }, t('cancel'))));
+    });
   }
 
   /* ---------- Content pools ---------- */
@@ -174,10 +210,10 @@
       ),
       h('p', { class: 'quiet-stats' },
         t('stage_of', { n: window.Programme.stage(), total: window.Programme.STAGES })),
-      h('button', {
-        class: 'btn btn-outline btn-block', type: 'button',
+      mode() !== 'training' ? h('button', {
+        class: 'btn btn-outline btn-block btn-big', type: 'button',
         onclick: function () { go('board'); }
-      }, h('span', { 'aria-hidden': 'true' }, '💬'), t('board_open')),
+      }, h('span', { 'aria-hidden': 'true' }, '💬'), t('board_open')) : null,
       h('p', { class: 'hint center' }, t('home_noPressure'))
     );
   };
@@ -319,7 +355,7 @@
       document.documentElement.setAttribute('data-motion', 'reduce');
     }
     window.Speech.onVoicesChanged(function () { if (current.name === 'settings') render(); });
-    go(window.Store.settings.onboarded ? 'home' : 'onboarding');
+    go(window.Store.settings.onboarded ? 'home' : 'onboarding');   // 'home' becomes the board in board-only mode
     if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       navigator.serviceWorker.register('sw.js').catch(function () {});
     }
