@@ -127,6 +127,13 @@
         (e.note ? '  "' + e.note + '"' : ''));
     });
     L.push('');
+    L.push('[' + t('ad_said') + ']');
+    var said = window.Store.saidLog.slice(-80);
+    if (!said.length) L.push('  ' + t('ad_said_none'));
+    said.forEach(function (e) {
+      L.push('  ' + window.UI.fmtDate(e.ts, true) + '  "' + e.text + '"  (' + t('ad_said_src_' + (e.src || 'tile')) + ')');
+    });
+    L.push('');
     L.push('[' + t('ad_load') + ']');
     var load = window.Store.recentLoad(30);
     var counts = { good: 0, much: 0, stop: 0 };
@@ -219,6 +226,32 @@
       var counts = { good: 0, much: 0, stop: 0 };
       load.forEach(function (x) { counts[x.answer] = (counts[x.answer] || 0) + 1; });
 
+      /* Grouped by day, newest first: on a ward round the question is
+         "what did she ask for today", not "what is entry 214". */
+      function saidList() {
+        var log = window.Store.saidLog.slice().reverse();
+        if (!log.length) return h('p', { class: 'muted', text: t('ad_said_none') });
+        var out = h('div', { class: 'stack-sm' });
+        var curDay = null, ul = null;
+        log.slice(0, 120).forEach(function (e) {
+          var day = window.UI.fmtDate(e.ts);
+          if (day !== curDay) {
+            curDay = day;
+            out.appendChild(h('div', { class: 'eyebrow', style: { marginTop: '.8rem' } }, day));
+            ul = h('ul', { class: 'list' });
+            out.appendChild(ul);
+          }
+          var time = new Date(e.ts);
+          ul.appendChild(h('li', {}, h('div', { class: 'listitem' },
+            h('span', { class: 'small muted', style: { flex: '0 0 auto', fontVariantNumeric: 'tabular-nums' } },
+              String(time.getHours()).padStart(2, '0') + ':' + String(time.getMinutes()).padStart(2, '0')),
+            h('div', { class: 'grow' },
+              h('strong', {}, e.text),
+              h('div', { class: 'hint' }, t('ad_said_src_' + (e.src || 'tile')))))));
+        });
+        return out;
+      }
+
       function wellbeingList() {
         var entries = window.Store.wellbeing.slice(-14).reverse();
         if (!entries.length) return h('p', { class: 'muted', text: t('wb_history_none') });
@@ -288,6 +321,22 @@
         h('section', { class: 'card' },
           h('h2', { text: t('ad_strongest') }),
           wordList(rankedWords(false), t('ad_noData'))
+        ),
+
+        h('section', { class: 'card' },
+          h('h2', { text: t('ad_said') }),
+          h('p', { class: 'hint', text: t('ad_said_hint') }),
+          h('p', { class: 'hint' }, t('ad_said_count', { n: window.Store.saidLog.length })),
+          saidList(),
+          window.Store.saidLog.length ? h('button', {
+            class: 'btn btn-quiet', style: { marginTop: '1rem' }, type: 'button',
+            onclick: function () {
+              window.UI.confirmSheet(t('ad_said_clear'), t('ad_said_clearQ'), t('ad_said_clear'), function () {
+                window.Store.clearSaidLog(); window.App.render();
+              }, true);
+            }
+          }, t('ad_said_clear')) : null,
+          h('p', { class: 'hint', style: { marginTop: '.8rem' } }, t('ad_said_privacy'))
         ),
 
         h('section', { class: 'card' },

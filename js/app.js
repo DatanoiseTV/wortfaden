@@ -40,11 +40,12 @@
   function renderChrome() {
     var inTask = current.name === 'session';
     var bare = current.name === 'onboarding';
+    var fixed = inTask || bare || current.name === 'board';
     clear(actions);
     clear(brandSlot);
     topbar.classList.toggle('is-task', inTask);
     topbar.classList.toggle('hidden', bare);
-    main.classList.toggle('is-task', inTask || bare);
+    main.classList.toggle('is-task', fixed);
 
     if (inTask) {
       if (session) {
@@ -72,8 +73,17 @@
     if (current.name !== 'home') {
       brandSlot.appendChild(h('button', {
         class: 'btn btn-quiet btn-icon', type: 'button', 'aria-label': t('back'),
-        onclick: function () { go('home'); }
+        onclick: function () {
+          if (current.name === 'board') window.Board.stepBack(go);
+          else go('home');
+        }
       }, h('span', { 'aria-hidden': 'true' }, '←')));
+    }
+    if (current.name !== 'board') {
+      actions.appendChild(h('button', {
+        class: 'btn btn-talk btn-icon', type: 'button', 'aria-label': t('board_open'),
+        onclick: function () { go('board'); }
+      }, h('span', { 'aria-hidden': 'true' }, '💬')));
     }
     actions.appendChild(h('button', {
       class: 'btn btn-quiet btn-icon', type: 'button', 'aria-label': t('langSwitch') + ': ' + t('otherLang'),
@@ -120,97 +130,14 @@
     return window.UI.pick(pack.generic);
   }
 
-  /* ---------- Session building ---------- */
+  /* ---------- Session building ----------
+   * Composition lives in Programme: stage, pool, difficulty ladder, repetition
+   * and variation. This file only runs what it is handed. */
   var LEN = { s: 6, m: 10, l: 14 };
 
-  /* The rung a word sits on. Recognition first, free production last. */
-  function stepForWord(w, forcedType) {
-    var box = window.Store.wordStat(w.id).box;
-    var type = forcedType;
-    if (!type) {
-      if (box <= 1) type = 'choose';
-      else if (box === 2) type = 'choose-cloze';
-      else if (box === 3) type = 'name-cued';
-      else type = 'name';
-    }
-    // Personal words have no feature set, no syllables and often no sentence.
-    if (w.isMine) {
-      if (type === 'choose-cloze' && !(w.hint && w.hint.indexOf('___') >= 0)) type = 'choose';
-      if (type === 'features' || type === 'sound') type = 'name-cued';
-    }
-    if ((type === 'features' || type === 'sound') && w.isMine) type = 'name-cued';
+  function isGraded(st) { return ['choose', 'spell', 'name', 'features', 'sound'].indexOf(st.type) >= 0; }
 
-    if (type === 'choose' || type === 'choose-cloze') {
-      if (type === 'choose-cloze') {
-        var cl = w.isMine ? w.hint : w[window.UI.lang()].c;
-        if (!cl || cl.indexOf('___') < 0) type = 'choose';
-      }
-      return {
-        type: 'choose',
-        mode: type === 'choose-cloze' ? 'cloze' : 'picture',
-        word: w,
-        options: distractors(w, box)
-      };
-    }
-    if (type === 'name-cued') return { type: 'name', word: w, cued: true };
-    if (type === 'name') return { type: 'name', word: w, cued: false };
-    return { type: type, word: w };
-  }
-
-  /* Same-category distractors once a word is established: that forces a
-   * semantic decision instead of a visual one. */
-  function distractors(w, box) {
-    var others = window.WORDS.filter(function (x) {
-      return x.id !== w.id && (box >= 1 ? x.cat === w.cat : x.cat !== w.cat);
-    });
-    if (others.length < 2) others = window.WORDS.filter(function (x) { return x.id !== w.id; });
-    return window.UI.shuffle(others).slice(0, 2).concat([w]);
-  }
-
-  function isGraded(s) { return ['choose', 'name', 'features', 'sound'].indexOf(s.type) >= 0; }
-
-  function sessionSteps(opts) {
-    opts = opts || {};
-    var n = LEN[window.Store.settings.sessionLen] || 10;
-    if (window.Store.settings.gentlePace) n = Math.max(4, Math.ceil(n * 0.6));
-    if (opts.count) n = opts.count;
-
-    var steps = [];
-    if (opts.onlyType === 'warmup') {
-      window.UI.shuffle(window.SERIES).slice(0, Math.max(1, Math.min(3, n))).forEach(function (s) {
-        steps.push({ type: 'warmup', series: s });
-      });
-      return steps;
-    }
-    if (opts.onlyType === 'phrase') {
-      window.UI.shuffle(window.PHRASES).slice(0, n).forEach(function (p) { steps.push({ type: 'phrase', phrase: p }); });
-      return steps;
-    }
-
-    if (!opts.onlyType) {
-      if (window.Store.shouldAskPain()) steps.push({ type: 'pain' });
-      steps.push({ type: 'warmup', series: window.UI.pick(window.SERIES) });
-      n = Math.max(3, n - 2);
-    }
-
-    var pool = allWords();
-    var byId = {};
-    pool.forEach(function (w) { byId[w.id] = w; });
-    var order = window.Store.dueOrder(pool.map(function (w) { return w.id; }));
-
-    for (var i = 0; i < order.length && steps.filter(isGraded).length < n; i++) {
-      var w = byId[order[i]];
-      if (!w) continue;
-      if (opts.onlyType === 'features' && w.isMine) continue;
-      if (opts.onlyType === 'sound' && (w.isMine || !w[window.UI.lang()].s)) continue;
-      steps.push(stepForWord(w, opts.onlyType));
-    }
-
-    if (!opts.onlyType) {
-      window.UI.shuffle(window.PHRASES).slice(0, 1).forEach(function (p) { steps.push({ type: 'phrase', phrase: p }); });
-    }
-    return steps;
-  }
+  function sessionSteps(opts) { return window.Programme.build(opts || {}); }
 
   /* Ask about the pace after every N graded steps, never as the last step. */
   function withChecks(steps) {
@@ -245,35 +172,13 @@
         h('span', { class: 'btn-hero-main' }, h('span', { 'aria-hidden': 'true' }, '▶ '), t('home_today')),
         h('span', { class: 'btn-hero-sub' }, t('home_minutes', { n: minutes }))
       ),
-      h('div', { class: 'btn-row' },
-        h('button', { class: 'btn btn-outline', type: 'button', onclick: function () { go('pick'); } },
-          h('span', { 'aria-hidden': 'true' }, '🗂'), t('choose_free')),
-        h('button', { class: 'btn btn-outline', type: 'button', onclick: function () { go('words'); } },
-          h('span', { 'aria-hidden': 'true' }, '⭐'), t('nav_words'))
-      ),
+      h('p', { class: 'quiet-stats' },
+        t('stage_of', { n: window.Programme.stage(), total: window.Programme.STAGES })),
+      h('button', {
+        class: 'btn btn-outline btn-block', type: 'button',
+        onclick: function () { go('board'); }
+      }, h('span', { 'aria-hidden': 'true' }, '💬'), t('board_open')),
       h('p', { class: 'hint center' }, t('home_noPressure'))
-    );
-  };
-
-  Screens.pick = function () {
-    var tiles = [
-      ['warmup', '🎵', 'warmup'], ['naming', '🖼️', null], ['cloze', '✍️', 'choose-cloze'],
-      ['sfa', '🧩', 'features'], ['match', '🔎', 'choose'], ['sound', '👂', 'sound'],
-      ['phrase', '💬', 'phrase']
-    ].map(function (p) {
-      return h('button', {
-        class: 'tile', type: 'button',
-        onclick: function () { go('session', { onlyType: p[2], count: 5 }); }
-      },
-        h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, p[1]),
-        h('span', { style: { minWidth: '0' } },
-          h('span', { class: 'tile-title' }, t('ex_' + p[0])),
-          h('span', { class: 'tile-desc' }, t('ex_' + p[0] + '_d'))));
-    });
-    return h('div', { class: 'stack' },
-      h('h1', { text: t('choose_free') }),
-      h('div', { class: 'tiles' }, tiles),
-      h('button', { class: 'btn btn-outline btn-block', type: 'button', onclick: function () { go('home'); } }, t('back'))
     );
   };
 
@@ -376,8 +281,12 @@
       idx = steps.length;
       syncChrome();
       clear(host);
+      window.Store.set('progress.sessions', (window.Store.progress.sessions || 0) + 1);
+      var advanced = graded > 0 && window.Programme.maybeAdvance();
       var pack = window.ENCOURAGE[window.UI.lang()];
-      var line = window.Store.progress.totalWords <= graded ? pack.milestone.firstSession : window.UI.pick(pack.generic);
+      var line = advanced
+        ? t('stage_up', { n: window.Programme.stage() })
+        : (window.Store.progress.totalWords <= graded ? pack.milestone.firstSession : window.UI.pick(pack.generic));
       host.appendChild(h('div', { class: 'exercise center' },
         h('h1', { text: t('session_done_title') }),
         h('p', { class: 'lead' }, t('session_done_body', { n: window.Store.todayCount() })),
@@ -393,6 +302,7 @@
   };
 
   Screens.onboarding = function () { return window.Onboarding.render(go); };
+  Screens.board = function () { return window.Board.render(go); };
   Screens.about = function () { return window.About.render(); };
   Screens.settings = function () { return window.SettingsScreen.render(go, render, VERSION); };
   Screens.words = function () { return window.MyWords.render(go); };

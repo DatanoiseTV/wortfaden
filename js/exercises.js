@@ -94,15 +94,34 @@
               window.Speech.speakSlow(text);
             }
           }
-        }, h('span', { 'aria-hidden': 'true' }, '🐢'), pieces ? (opts.pieceLabel || t('listen_syll')) : t('listen_slow'))),
+        }, h('span', { 'aria-hidden': 'true' }, '🐢'), pieces ? (opts.pieceLabel || t('listen_syll')) : t('listen_slow')),
+        opts.extra ? h('button', {
+          class: 'btn btn-outline', type: 'button',
+          onclick: function () { plain(); window.Speech.speak(opts.extra); }
+        }, h('span', { 'aria-hidden': 'true' }, '💬'), t('whole_sentence')) : null),
       strip, hint);
   }
 
   /* The closing panel every item ends on: the word, large, spoken, with the
    * speech help — and exactly one way forward, pinned to the bottom edge.
    * `footer` replaces the single Next button where an outcome is asked for. */
-  function answerPanel(item, footer) {
-    if (hasVoice()) window.Speech.speak(item.w);
+  function answerPanel(item, footer, opts) {
+    opts = opts || {};
+    /* Where the task was a sentence, the completed sentence is read out after
+       the word: hearing the word in place is what carries it into speech, and
+       Big CACTUS found that transfer to conversation does not come for free. */
+    var full = opts.sentence || (item.cloze ? item.cloze.replace('___', item.w) : null);
+
+    if (hasVoice()) {
+      if (full) {
+        window.Speech.speak(item.w, {
+          onend: function () { setTimeout(function () { window.Speech.speak(full); }, 450); }
+        });
+      } else {
+        window.Speech.speak(item.w);
+      }
+    }
+
     return h('div', { class: 'answerwrap' },
       h('div', { class: 'card answer' },
         h('div', { class: 'eyebrow' }, t('answer_is')),
@@ -110,7 +129,8 @@
           item.article ? h('span', { class: 'article' }, item.article + ' ') : null,
           h('strong', {}, item.w)),
         item.syll && item.syll.length > 1 ? h('div', { class: 'syll' }, item.syll.join(' \u00b7 ')) : null,
-        speechHelp(item.w, { pieces: item.syll })),
+        full ? h('p', { class: 'answer-sentence' }, full) : null,
+        speechHelp(item.w, { pieces: item.syll, extra: full })),
       h('div', { class: 'actions' }, footer));
   }
 
@@ -143,7 +163,7 @@
             btn.classList.add('is-right');
             Array.prototype.forEach.call(grid.children, function (c) { c.disabled = true; if (c !== btn) c.classList.add('is-off'); });
             window.UI.announce(t('match_correct') + ' ' + item.w);
-            window.Store.recordAttempt(item.id, tries === 1 ? 'yes' : 'help');
+            window.Store.recordAttempt(item.id, tries === 1 ? 'yes' : 'help', step.taskType);
             setTimeout(function () {
               window.UI.clear(host);
               host.appendChild(pictureEl(item, 'small'));
@@ -167,6 +187,56 @@
       host.appendChild(pictureEl(item));
     }
     host.appendChild(grid);
+    return { el: host };
+  }
+
+  /* ---------- Orthographic discrimination: which spelling is right ----------
+   * Reading and writing are usually affected alongside speech in aphasia, and
+   * this is the standard written-modality task. The distractors are homophone
+   * traps, so the ear cannot settle it and the judgement has to be about the
+   * written form. Words that yield no plausible trap never reach this task. */
+  function spell(step, ctx) {
+    var lang = window.UI.lang();
+    var item = norm(step.word, lang);
+    warm([item.w]);
+    var host = h('div', { class: 'exercise' });
+    var wrong = window.Spelling.misspellings(item.w, lang, 2);
+    var options = window.UI.shuffle([item.w].concat(wrong));
+    var tries = 0, settled = false;
+
+    var grid = h('div', { class: 'wordchoices' });
+    options.forEach(function (o) {
+      var btn = h('button', {
+        class: 'wordchoice', type: 'button',
+        onclick: function () {
+          if (settled) return;
+          tries++;
+          if (o === item.w) {
+            settled = true;
+            btn.classList.add('is-right');
+            Array.prototype.forEach.call(grid.children, function (c) { c.disabled = true; if (c !== btn) c.classList.add('is-off'); });
+            window.Store.recordAttempt(item.id, tries === 1 ? 'yes' : 'help', step.taskType);
+            setTimeout(function () {
+              window.UI.clear(host);
+              host.appendChild(pictureEl(item, 'small'));
+              host.appendChild(answerPanel(item, nextButton(function () { ctx.done(tries === 1 ? 'yes' : 'help'); })));
+            }, 550);
+          } else {
+            btn.classList.add('is-off');
+            btn.disabled = true;
+            window.UI.announce(t('match_try'));
+          }
+        }
+      }, o);
+      grid.appendChild(btn);
+    });
+
+    host.appendChild(h('p', { class: 'prompt' }, t('spell_q')));
+    host.appendChild(pictureEl(item, 'small'));
+    var lb = listenBtn(item.w);
+    if (lb) host.appendChild(h('div', { class: 'btn-row' }, lb));
+    host.appendChild(grid);
+    if (hasVoice()) window.Speech.speak(item.w);
     return { el: host };
   }
 
@@ -211,11 +281,11 @@
         h('div', { class: 'btn-row' },
           h('button', {
             class: 'btn btn-calm btn-big', type: 'button',
-            onclick: function () { window.Store.recordAttempt(item.id, usedHint ? 'help' : 'yes'); ctx.done('yes'); }
+            onclick: function () { window.Store.recordAttempt(item.id, usedHint ? 'help' : 'yes', step.taskType); ctx.done('yes'); }
           }, h('span', { 'aria-hidden': 'true' }, '\u2713'), t('got_it')),
           h('button', {
             class: 'btn btn-outline btn-big', type: 'button',
-            onclick: function () { window.Store.recordAttempt(item.id, 'not'); ctx.done('not'); }
+            onclick: function () { window.Store.recordAttempt(item.id, 'not', step.taskType); ctx.done('not'); }
           }, h('span', { 'aria-hidden': 'true' }, '\ud83c\udf31'), t('was_hard'))))));
     }
 
@@ -255,7 +325,7 @@
         host.appendChild(pictureEl(item, 'small'));
         host.appendChild(h('p', { class: 'prompt' }, t('sfa_now_name')));
         host.appendChild(answerPanel(item, nextButton(function () {
-          window.Store.recordAttempt(item.id, 'help');
+          window.Store.recordAttempt(item.id, 'help', step.taskType);
           ctx.done('help');
         })));
         return;
@@ -297,7 +367,7 @@
           window.UI.clear(host);
           host.appendChild(pictureEl(item, 'small'));
           host.appendChild(answerPanel(item, nextButton(function () {
-            window.Store.recordAttempt(item.id, 'help');
+            window.Store.recordAttempt(item.id, 'help', step.taskType);
             ctx.done('help');
           })));
         }
@@ -430,6 +500,7 @@
     build: function (step, ctx) {
       switch (step.type) {
         case 'choose': return choose(step, ctx);
+        case 'spell': return spell(step, ctx);
         case 'name': return name(step, ctx);
         case 'features': return features(step, ctx);
         case 'sound': return sound(step, ctx);

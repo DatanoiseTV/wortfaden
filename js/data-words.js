@@ -98,7 +98,7 @@ window.WORDS = [
  en:{w:'foot',a:'the',s:['foot'],c:'The shoe goes on the ___.',
      f:{k:'a body part',fn:'for walking and standing',ak:'it steps',o:'at the end of the leg',as:'shoe, sock',e:'has toes'}}},
 
-{id:'haar',emoji:'💇',cat:'koerper',
+{id:'haar',emoji:'🦱',cat:'koerper',
  de:{w:'Haar',a:'das',s:['Haar'],c:'Mit der Bürste kämme ich mein ___.',r:'Paar',
      f:{k:'ein Körperteil',fn:'es wächst auf dem Kopf',ak:'es wächst',o:'auf dem Kopf',as:'Bürste, Friseur',e:'weich, lang oder kurz'}},
  en:{w:'hair',a:'the',s:['hair'],c:'With a brush I comb my ___.',r:'chair',
@@ -111,7 +111,7 @@ window.WORDS = [
      f:{k:'a sense organ',fn:'for hearing',ak:'it hears',o:'on the side of the head',as:'music, earring',e:'small, round'}}},
 
 /* ---------- Familie & Menschen ---------- */
-{id:'mutter',emoji:'👩',cat:'menschen',
+{id:'mutter',emoji:'👩‍👧',cat:'menschen',
  de:{w:'Mutter',a:'die',s:['Mut','ter'],c:'Mein Vater und meine ___.',r:'Futter',
      f:{k:'ein Mensch, Familie',fn:'sie hat mich großgezogen',ak:'sie sorgt für die Familie',o:'zu Hause',as:'Vater, Kind, Muttertag',e:'vertraut, nah'}},
  en:{w:'mother',a:'my',s:['mo','ther'],c:'My father and my ___.',r:'brother',
@@ -123,7 +123,7 @@ window.WORDS = [
  en:{w:'child',a:'a',s:['child'],c:'It plays in the sandbox, it is a ___.',r:'mild',
      f:{k:'a person',fn:'learns and grows',ak:'plays and laughs',o:'kindergarten, playground',as:'toy, school',e:'small, cheerful'}}},
 
-{id:'freund',emoji:'🤝',cat:'menschen',
+{id:'freund',emoji:'🧑‍🤝‍🧑',cat:'menschen',
  de:{w:'Freund',a:'der',s:['Freund'],c:'Er besucht mich oft, er ist mein bester ___.',
      f:{k:'ein Mensch',fn:'er ist für mich da',ak:'er besucht und hilft',o:'überall',as:'Vertrauen, Besuch',e:'vertraut, treu'}},
  en:{w:'friend',a:'a',s:['friend'],c:'He visits me often, he is my best ___.',r:'end',
@@ -221,17 +221,17 @@ window.WORDS = [
  en:{w:'plate',a:'a',s:['plate'],c:'The food is on the ___.',r:'gate',
      f:{k:'tableware',fn:'for serving food',ak:'you set it down',o:'table, cupboard',as:'fork, food',e:'round, flat, white'}}},
 
-{id:'topf',emoji:'🍳',cat:'kueche',
- de:{w:'Topf',a:'der',s:['Topf'],c:'Die Nudeln koche ich im ___.',r:'Kopf',
-     f:{k:'ein Küchengerät',fn:'zum Kochen',ak:'er steht auf dem Herd',o:'in der Küche',as:'Herd, Deckel, Wasser',e:'aus Metall, rund, heiß'}},
- en:{w:'pot',a:'a',s:['pot'],c:'I cook the pasta in a ___.',r:'hot',
-     f:{k:'a kitchen tool',fn:'for cooking',ak:'it sits on the stove',o:'kitchen',as:'stove, lid, water',e:'metal, round, hot'}}},
+{id:'pfanne',emoji:'🍳',cat:'kueche',
+ de:{w:'Pfanne',a:'die',s:['Pfan','ne'],c:'Das Ei brate ich in der ___.',r:'Tanne',
+     f:{k:'ein Küchengerät',fn:'zum Braten',ak:'sie steht auf dem Herd',o:'in der Küche',as:'Herd, Ei, Öl',e:'aus Metall, flach, heiß'}},
+ en:{w:'pan',a:'a',s:['pan'],c:'I fry the egg in a ___.',r:'man',
+     f:{k:'a kitchen tool',fn:'for frying',ak:'it sits on the stove',o:'kitchen',as:'stove, egg, oil',e:'metal, flat, hot'}}},
 
-{id:'kuehlschrank',emoji:'🧊',cat:'kueche',
- de:{w:'Kühlschrank',a:'der',s:['Kühl','schrank'],c:'Die Milch stelle ich in den ___.',
-     f:{k:'ein Gerät',fn:'hält Essen kalt',ak:'er brummt',o:'in der Küche',as:'Milch, Eis, Strom',e:'groß, weiß, kalt'}},
- en:{w:'fridge',a:'the',s:['fridge'],c:'I put the milk in the ___.',
-     f:{k:'an appliance',fn:'keeps food cold',ak:'it hums',o:'kitchen',as:'milk, ice, electricity',e:'big, white, cold'}}}
+{id:'milch',emoji:'🥛',cat:'kueche',
+ de:{w:'Milch',a:'die',s:['Milch'],c:'In den Kaffee gebe ich ___.',
+     f:{k:'ein Getränk',fn:'zum Trinken, für den Kaffee',ak:'sie kommt von der Kuh',o:'im Kühlschrank, im Glas',as:'Kuh, Kaffee, Käse',e:'weiß, kühl, mild'}},
+ en:{w:'milk',a:'the',s:['milk'],c:'In my coffee I put ___.',
+     f:{k:'a drink',fn:'for drinking, for coffee',ak:'it comes from a cow',o:'fridge, glass',as:'cow, coffee, cheese',e:'white, cool, mild'}}}
 ,
 /* ---------- Haus & Wohnen ---------- */
 {id:'haus',emoji:'🏠',cat:'haus',
@@ -302,10 +302,10 @@ window.WORDS = [
      f:{k:'clothing',fn:'for wearing',ak:'you step into them',o:'wardrobe',as:'belt, legs',e:'blue, made of cloth'}}},
 
 {id:'hut',emoji:'🎩',cat:'kleidung',
- de:{w:'Hut',a:'der',s:['Hut'],c:'Gegen die Sonne trage ich einen ___.',r:'gut',
-     f:{k:'ein Kleidungsstück',fn:'schützt den Kopf',ak:'man setzt ihn auf',o:'auf dem Kopf, an der Garderobe',as:'Sonne, Kopf',e:'rund, mit Rand'}},
- en:{w:'hat',a:'a',s:['hat'],c:'Against the sun I wear a ___.',r:'cat',
-     f:{k:'clothing',fn:'protects the head',ak:'you put it on',o:'on your head, coat rack',as:'sun, head',e:'round, has a brim'}}},
+ de:{w:'Hut',a:'der',s:['Hut'],c:'Auf den Kopf setze ich einen ___.',r:'gut',
+     f:{k:'ein Kleidungsstück',fn:'schützt den Kopf',ak:'man setzt ihn auf',o:'auf dem Kopf, an der Garderobe',as:'Mantel, Kopf',e:'rund, mit Rand'}},
+ en:{w:'hat',a:'a',s:['hat'],c:'On my head I put a ___.',r:'cat',
+     f:{k:'clothing',fn:'protects the head',ak:'you put it on',o:'on your head, coat rack',as:'coat, head',e:'round, has a brim'}}},
 
 {id:'socke',emoji:'🧦',cat:'kleidung',
  de:{w:'Socke',a:'die',s:['So','cke'],c:'In den Schuh kommt zuerst die ___.',r:'Glocke',
@@ -407,13 +407,13 @@ window.WORDS = [
  en:{w:'music',a:'the',s:['mu','sic'],c:'I turn on the radio and listen to ___.',
      f:{k:'something to hear',fn:'brings joy, relaxes',ak:'it sounds',o:'radio, concert',as:'song, dancing, radio',e:'loud or soft, beautiful'}}},
 
-{id:'garten',emoji:'🌻',cat:'freizeit',
- de:{w:'Garten',a:'der',s:['Gar','ten'],c:'Hinter dem Haus liegt der ___.',
-     f:{k:'ein Ort',fn:'zum Pflanzen und Sitzen',ak:'dort wächst alles',o:'hinter dem Haus',as:'Blume, Rasen, Gießkanne',e:'grün, ruhig'}},
- en:{w:'garden',a:'the',s:['gar','den'],c:'Behind the house is the ___.',
-     f:{k:'a place',fn:'for planting and sitting',ak:'things grow there',o:'behind the house',as:'flower, lawn, watering can',e:'green, quiet'}}},
+{id:'fernseher',emoji:'📺',cat:'freizeit',
+ de:{w:'Fernseher',a:'der',s:['Fern','se','her'],c:'Abends schalte ich den ___ ein.',
+     f:{k:'ein Gerät',fn:'zum Nachrichten und Filme schauen',ak:'er läuft und flimmert',o:'im Wohnzimmer, im Zimmer',as:'Fernbedienung, Nachrichten',e:'flach, schwarz, laut oder leise'}},
+ en:{w:'television',a:'the',s:['te','le','vi','sion'],c:'In the evening I switch on the ___.',
+     f:{k:'a device',fn:'for watching news and films',ak:'it plays and flickers',o:'living room, hospital room',as:'remote control, news',e:'flat, black, loud or quiet'}}},
 
-{id:'foto',emoji:'📷',cat:'freizeit',
+{id:'foto',emoji:'🖼️',cat:'freizeit',
  de:{w:'Foto',a:'das',s:['Fo','to'],c:'Zur Erinnerung mache ich ein ___.',
      f:{k:'ein Bild',fn:'hält Erinnerungen fest',ak:'man macht es',o:'im Album, am Handy',as:'Kamera, Erinnerung',e:'flach, bunt'}},
  en:{w:'photo',a:'a',s:['pho','to'],c:'To remember it I take a ___.',

@@ -278,6 +278,13 @@
             nameIn.addEventListener('change', function () { window.Store.set('settings.name', nameIn.value.trim().slice(0, 24)); });
             return h('div', { class: 'field' }, h('label', { for: 'setName' }, t('set_name')), nameIn);
           })(),
+          (function () {
+            var pIn = h('input', { type: 'text', id: 'setPartner', maxlength: '24', value: s.partner || '' });
+            pIn.addEventListener('change', function () { window.Store.set('settings.partner', pIn.value.trim().slice(0, 24)); });
+            return h('div', { class: 'field' },
+              h('label', { for: 'setPartner' }, t('set_partner')), pIn,
+              h('p', { class: 'hint' }, t('set_partner_d')));
+          })(),
           segmented(t('set_lang'), lang, [{ v: 'de', l: 'Deutsch' }, { v: 'en', l: 'English' }], function (v) { set('lang', v); }),
           segmented(t('set_text'), s.textSize, [
             { v: 's', l: t('set_text_s') }, { v: 'm', l: t('set_text_m') },
@@ -352,6 +359,8 @@
         ),
         h('section', { class: 'card' },
           h('div', { class: 'btn-row' },
+            h('button', { class: 'btn btn-outline', type: 'button', onclick: function () { go('words'); } },
+              h('span', { 'aria-hidden': 'true' }, '⭐'), t('nav_words')),
             h('button', { class: 'btn btn-outline', type: 'button', onclick: function () { go('about'); } },
               h('span', { 'aria-hidden': 'true' }, 'ℹ️'), t('set_about')),
             h('button', {

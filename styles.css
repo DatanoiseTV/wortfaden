@@ -420,7 +420,8 @@ main.is-task > .taskhost > .exercise { flex:1 1 auto; }
 .answer .btn { min-height:var(--tap); }
 .answer .answer-word { font-size:1.9rem; font-weight:700; line-height:1.2; }
 .answer .answer-word .article { font-size:1rem; font-weight:600; color:var(--muted); }
-.answer .syll { color:var(--muted); margin:.2rem 0 .8rem; letter-spacing:.04em; }
+.answer .syll { color:var(--muted); margin:.2rem 0 .5rem; letter-spacing:.04em; }
+.answer-sentence { font-size:1.05rem; color:var(--ink); margin:.4rem 0 0; opacity:.9; }
 .answer .btn-row { justify-content:center; margin-top:.9rem; }
 .answer .chunks { justify-content:center; }
 
@@ -544,3 +545,76 @@ dialog.sheet .card { box-shadow:var(--shadow-lift); }
   .topbar, .footer, .btn { display:none !important; }
   body { background:#fff; color:#000; }
 }
+
+/* ---------- Communication board ----------
+   Not an exercise surface: this one is used under pressure, so the targets are
+   bigger, the contrast harder, and everything spoken is also shown very large
+   because in a hospital room the audio is the unreliable channel. */
+.btn-talk { background:var(--calm-soft); border-color:var(--calm); color:var(--calm-ink); }
+
+.boardtabs { display:flex; gap:.5rem; overflow-x:auto; padding-bottom:.3rem; -webkit-overflow-scrolling:touch; }
+.boardtab {
+  flex:0 0 auto; min-height:48px; padding:.5em 1em;
+  border:2px solid var(--line-strong); border-radius:999px;
+  background:var(--surface); color:var(--ink); font:inherit; font-weight:600; cursor:pointer;
+  white-space:nowrap;
+}
+.boardtab[aria-selected="true"] { background:var(--accent); border-color:var(--accent); color:#fff; }
+:root[data-theme="dark"] .boardtab[aria-selected="true"] { color:#15181A; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .boardtab[aria-selected="true"] { color:#15181A; } }
+
+.boardgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(8.5rem, 46%), 1fr)); gap:.7rem; }
+.boardgrid.wide { grid-template-columns:repeat(auto-fill, minmax(min(12rem, 100%), 1fr)); }
+.boardtile {
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.35rem;
+  min-height:calc(var(--tap) + 2.2rem); padding:.8rem .5rem;
+  border:2px solid var(--line-strong); border-radius:var(--r-md);
+  background:var(--surface); color:var(--ink); font:inherit; cursor:pointer;
+  text-align:center; touch-action:manipulation;
+}
+.boardtile:active { transform:scale(.985); }
+.boardtile-icon { font-size:2rem; line-height:1; }
+.boardtile-label { font-weight:640; font-size:1rem; line-height:1.25; }
+.boardtile.is-big { grid-column:span 2; min-height:calc(var(--tap) + 3rem); }
+.boardtile.is-big .boardtile-icon { font-size:2.6rem; }
+.boardtile.is-big .boardtile-label { font-size:1.3rem; }
+.boardtile.is-text { min-height:var(--tap); }
+.boardtile.tone-yes { background:var(--calm-soft); border-color:var(--calm); }
+.boardtile.tone-no { background:var(--clay-soft); border-color:var(--clay); }
+
+.composehead { font-size:1.2rem; font-weight:700; margin:.2rem 0 .6rem; }
+
+.letters { display:grid; grid-template-columns:repeat(auto-fill, minmax(3rem, 1fr)); gap:.4rem; margin-top:.8rem; }
+.letterkey {
+  min-height:52px; border:2px solid var(--line-strong); border-radius:var(--r-sm);
+  background:var(--surface); color:var(--ink); font:inherit; font-size:1.1rem; font-weight:700; cursor:pointer;
+}
+
+.bigsay {
+  position:fixed; inset:0; z-index:70;
+  background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:max(1.2rem, env(safe-area-inset-top)) 1.2rem max(1.2rem, env(safe-area-inset-bottom));
+  gap:1.6rem;
+}
+.bigsay-text {
+  margin:0; max-height:70vh; overflow:hidden;
+  font-size:4.2rem; font-weight:750; line-height:1.12; text-align:center;
+  letter-spacing:-.02em; overflow-wrap:anywhere;
+}
+.bigsay-actions { display:flex; gap:.8rem; flex-wrap:wrap; justify-content:center; }
+
+/* The board is a fixed frame: controls pinned top and bottom, only the tiles
+   scroll. Hunting for a scrolled-away "Yes" is not acceptable here. */
+.boardscreen { display:flex; flex-direction:column; height:100%; min-height:0; gap:.6rem; }
+.boardhead { flex:0 0 auto; display:flex; flex-direction:column; gap:.55rem;
+  position:sticky; top:0; z-index:3; background:var(--bg); padding-bottom:.35rem; }
+.boardbody { flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:.3rem; }
+.boardfoot { flex:0 0 auto; padding-bottom:max(.2rem, env(safe-area-inset-bottom)); }
+
+/* A follow-up turns the overlay into a small board of its own: the phrase
+   stays readable at the top, the answers sit under it. */
+.bigsay.has-followup { justify-content:flex-start; gap:.9rem; overflow-y:auto; padding-top:max(1rem, env(safe-area-inset-top)); }
+.bigsay.has-followup .bigsay-text { max-height:none; font-size:2.4rem; }
+.bigsay-q { margin:0; font-size:1.25rem; font-weight:660; color:var(--muted); text-align:center; }
+.boardgrid.followup { width:100%; max-width:34rem; grid-template-columns:repeat(auto-fill, minmax(min(7.5rem, 46%), 1fr)); }

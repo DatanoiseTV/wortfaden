@@ -20,11 +20,13 @@
       painAsk: 'some',       // off | some | always
       pinHash: null,         // soft lock for the review area (see README: NOT security)
       name: '',              // first name, used only for the greeting
+      partner: '',           // who visits: lets the board say a real name
       onboarded: false,
       neural: { enabled: false, de: null, en: null }   // optional offline Piper voice
     },
-    progress: { words: {}, days: {}, totalWords: 0 },
+    progress: { words: {}, days: {}, totalWords: 0, stage: 1, sessions: 0 },
     wellbeing: [],           // { ts, pain, where[], energy, note }
+    saidLog: [],             // every phrase spoken on the communication board
     load: [],                // { ts, answer } from the in-session pace check
     mine: []
   };
@@ -87,6 +89,7 @@
     get progress() { return state.progress; },
     get mine() { return state.mine; },
     get wellbeing() { return state.wellbeing; },
+    get saidLog() { return state.saidLog; },
     isPersistent: function () { return writable; },
 
     set: function (path, value) {
@@ -99,8 +102,9 @@
     /* --- Leitner spaced repetition -------------------------------------
      * box 0..4. "Said it" promotes, "with help" holds, "not yet" steps back
      * one box only — never to zero, so a hard day cannot undo a week. */
-    recordAttempt: function (wordId, outcome) {
-      var w = state.progress.words[wordId] || { box: 0, seen: 0, ok: 0, last: 0 };
+    recordAttempt: function (wordId, outcome, taskType) {
+      var w = state.progress.words[wordId] || { box: 0, seen: 0, ok: 0, last: 0, lastType: null };
+      if (taskType) w.lastType = taskType;
       w.seen += 1;
       w.last = Date.now();
       if (outcome === 'yes') { w.box = Math.min(4, w.box + 1); w.ok += 1; }
@@ -114,7 +118,7 @@
     },
 
     wordStat: function (wordId) {
-      return state.progress.words[wordId] || { box: 0, seen: 0, ok: 0, last: 0 };
+      return state.progress.words[wordId] || { box: 0, seen: 0, ok: 0, last: 0, lastType: null };
     },
 
     /* Lowest box first, oldest first inside a box. Unseen words rank as box 0
@@ -181,6 +185,19 @@
       }
       return false;
     },
+
+    /* --- Communication log ----------------------------------------------
+     * Everything said on the board, with a timestamp. It is the only record
+     * of what someone who cannot speak actually asked for, which makes it
+     * genuinely useful on a ward round — and genuinely sensitive. It stays on
+     * the device and sits behind the review PIN. */
+    logSaid: function (text, src) {
+      if (!text) return;
+      state.saidLog.push({ ts: Date.now(), text: String(text).slice(0, 200), src: src || 'tile' });
+      if (state.saidLog.length > 800) state.saidLog = state.saidLog.slice(-800);
+      persist();
+    },
+    clearSaidLog: function () { state.saidLog = []; persist(); },
 
     /* --- Wellbeing log -------------------------------------------------- */
     addWellbeing: function (entry) {
