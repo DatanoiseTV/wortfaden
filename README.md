@@ -10,8 +10,14 @@ It does two jobs:
 2. **Communication** — an AAC board for the times speaking is not working at
    all, which in an acute ward is most of them.
 
+**→ [datanoisetv.github.io/wortfaden](https://datanoisetv.github.io/wortfaden/)**
+
 Runs in any modern browser, on a phone or a tablet, offline after the first
 load. No server, no account, no data leaves the device.
+
+On a phone, open the link and use **"Add to Home Screen"** (Safari: share
+menu; Chrome: the three-dot menu). It then opens like an app and keeps
+working without a network.
 
 ---
 
@@ -279,9 +285,10 @@ python3 -m http.server 8137
 Opening `index.html` directly from the filesystem works too, minus the service
 worker (so no offline caching) and minus the neural voice.
 
-To put it on a phone: host the folder over HTTPS anywhere static, open it, and
-use "Add to Home Screen". It then behaves as a standalone app and works
-offline.
+It is also published from this repository to GitHub Pages at
+<https://datanoisetv.github.io/wortfaden/>; pushing to `main` redeploys it.
+To host it elsewhere, serve the folder over HTTPS from any static host — all
+paths are relative, so a subdirectory works fine.
 
 ### Layout
 
