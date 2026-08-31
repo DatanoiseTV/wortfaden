@@ -13,15 +13,31 @@ and are therefore distributed under that same licence.
 frequency lists derived from the OpenSubtitles 2018 corpus.
 Copyright Hermit Dave. Content licensed CC BY-SA 4.0.
 
-**German capitalisation and grammatical gender**
+**German capitalisation, grammatical gender, and the German long tail**
 [gambolputty/german-nouns](https://github.com/gambolputty/german-nouns) — a
 list of roughly 100,000 German nouns with their grammatical properties,
 compiled from the German Wiktionary. Licensed CC BY-SA 4.0.
 
+**English validity filter**
+[dwyl/english-words](https://github.com/dwyl/english-words) — a word list
+released under the **Unlicense** (public domain). It is used only to decide
+whether an English word from the subtitle corpus is a real word; none of its
+own content is redistributed beyond words that the corpus already contained.
+Being public domain, it places no conditions on this repository.
+
 ## What was changed
 
 - Words were filtered (letters only, length limits, transcription noise such
-  as "hmm" and "uhh" removed) and truncated to the 20,000 most frequent.
+  as "hmm" and "uhh" removed).
+- Depth was chosen from where each corpus stops being trustworthy. German is
+  still real vocabulary at rank 60,000 (kaffeekanne, sportskanone,
+  dementieren); English has decayed into names and fragments by 40,000 (flaco,
+  eusebio, wantyou), so past rank 30,000 an English word is kept only if the
+  public-domain dictionary confirms it exists.
+- The German list is then extended with Wiktionary noun lemmas the subtitle
+  corpus never contained — which is where Steckdose, Katheter, Oszilloskop
+  and Synthesizer come from. Plurals are left out: a prefix search reaches
+  them from the singular.
 - German entries were capitalised where they matched a known noun, and the
   gender was attached. Closed-class words (pronouns, auxiliaries, common
   adverbs) are held back from capitalisation, because Wiktionary lists

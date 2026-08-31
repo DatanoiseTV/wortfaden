@@ -20,6 +20,44 @@
   var writeSeed = null;     // a composed sentence handed over to free writing
   var ART = { m: 'der', f: 'die', n: 'das' };
 
+  /* Two layouts, because neither suits everyone: the familiar one for anyone
+     who has typed for decades, and an alphabetical grid for anyone who has
+     not or who is hunting letter by letter. */
+  var LAYOUTS = {
+    de: {
+      qwertz: ['QWERTZUIOPÜ', 'ASDFGHJKLÖÄ', 'YXCVBNMß'],
+      abc: ['ABCDEFGH', 'IJKLMNOP', 'QRSTUVWX', 'YZÄÖÜß'],
+      num: ['12345', '67890', '.,?!-']
+    },
+    en: {
+      qwertz: ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'],
+      abc: ['ABCDEFG', 'HIJKLMN', 'OPQRSTU', 'VWXYZ'],
+      num: ['12345', '67890', '.,?!-']
+    }
+  };
+  var LAYOUT_ORDER = ['qwertz', 'abc', 'num'];
+  var LAYOUT_LABEL = { qwertz: 'ABC', abc: '123', num: 'QWERTZ' };
+
+  /* Dice pips under each digit. Numbers are hard to retrieve and easy to
+     mishear across a room, and a quantity you can point at works when the
+     word does not — how many, which bed, how long. Positions index a 3x3
+     grid, the way a die reads. */
+  var PIPS = {
+    '1': [4], '2': [0, 8], '3': [0, 4, 8], '4': [0, 2, 6, 8],
+    '5': [0, 2, 4, 6, 8], '6': [0, 2, 3, 5, 6, 8],
+    '7': [0, 2, 3, 4, 5, 6, 8], '8': [0, 1, 2, 3, 5, 6, 7, 8],
+    '9': [0, 1, 2, 3, 4, 5, 6, 7, 8], '0': []
+  };
+
+  function pipFace(digit) {
+    var on = PIPS[digit] || [];
+    var grid = h('span', { class: 'pips', 'aria-hidden': 'true' });
+    for (var i = 0; i < 9; i++) {
+      grid.appendChild(h('span', { class: 'pip' + (on.indexOf(i) >= 0 ? ' on' : '') }));
+    }
+    return grid;
+  }
+
   /* Back steps OUT of where you are, one level at a time, and only leaves the
      board from its own top level. Landing on the home screen because you
      wanted to get out of a sentence starter is the wrong answer under
@@ -345,7 +383,8 @@
         return;
       }
       status.textContent = '';
-      var hits = window.Predict.suggest(q, lang, 6);
+      var before = field.value.slice(0, field.value.length - q.length);
+      var hits = window.Predict.suggest(q, lang, 6, before);
       if (!hits.length) { status.textContent = t('board_no_match'); return; }
       hits.forEach(function (hit) {
         sugg.appendChild(h('button', {
@@ -358,23 +397,54 @@
       });
     }
 
-    field.addEventListener('input', refresh);
+    var pending = null;
+    function schedule() {
+      if (pending) clearTimeout(pending);
+      pending = setTimeout(function () { pending = null; refresh(); }, 90);
+    }
+    field.addEventListener('input', schedule);
     // Start the download while the first letters are still being typed.
     if (!window.Predict.loaded(lang)) window.Predict.load(lang, function () { refresh(); });
 
-    var letters = h('div', { class: 'letters' });
-    var alphabet = lang === 'de' ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    alphabet.split('').forEach(function (c) {
-      letters.appendChild(h('button', {
-        class: 'letterkey', type: 'button', 'aria-label': c,
-        onclick: function () {
-          field.value += (field.value && !/\s$/.test(field.value)) ? c.toLowerCase() : c;
-          refresh();
-        }
-      }, c));
-    });
+    function edit(fn) { fn(); schedule(); }
 
-    function edit(fn) { fn(); refresh(); }
+    var letters = h('div', { class: 'keyboard' });
+    function style() {
+      var v = window.Store.settings.keyboard;
+      return LAYOUT_ORDER.indexOf(v) >= 0 ? v : 'qwertz';
+    }
+    function paintKeys() {
+      window.UI.clear(letters);
+      var st = style();
+      letters.classList.toggle('is-num', st === 'num');
+      (LAYOUTS[lang] || LAYOUTS.en)[st].forEach(function (row) {
+        var r = h('div', { class: 'keyrow' });
+        row.split('').forEach(function (c) {
+          var isDigit = /[0-9]/.test(c);
+          r.appendChild(h('button', {
+            class: 'letterkey' + (isDigit ? ' numkey' : ''), type: 'button', 'aria-label': c,
+            onclick: function () {
+              edit(function () {
+                if (/[.,?!]/.test(c)) field.value = field.value.replace(/\s+$/, '') + c + ' ';
+                else field.value += (field.value && !/\s$/.test(field.value)) ? c.toLowerCase() : c;
+              });
+            }
+          }, h('span', { class: 'keychar' }, c), isDigit ? pipFace(c) : null));
+        });
+        letters.appendChild(r);
+      });
+      layoutBtn.firstChild.textContent = LAYOUT_LABEL[st];
+    }
+
+    var layoutBtn = h('button', {
+      class: 'btn btn-quiet btn-icon layoutbtn', type: 'button', 'aria-label': t('board_layout'),
+      onclick: function () {
+        var next = LAYOUT_ORDER[(LAYOUT_ORDER.indexOf(style()) + 1) % LAYOUT_ORDER.length];
+        window.Store.set('settings.keyboard', next);
+        paintKeys();
+      }
+    }, h('span', {}, 'ABC'));
+    paintKeys();
 
     /* Order matters on a phone: what is written, then the suggestions right
        under it (they stay above the system keyboard when it opens), then the
@@ -395,9 +465,10 @@
           onclick: function () { edit(function () { field.value = field.value.slice(0, -1); }); }
         }, h('span', { 'aria-hidden': 'true' }, '⌫')),
         h('button', {
-          class: 'btn btn-outline', style: { flex: '0 1 5rem' }, type: 'button', 'aria-label': t('board_space'),
+          class: 'btn btn-outline btn-icon', type: 'button', 'aria-label': t('board_space'),
           onclick: function () { edit(function () { field.value += ' '; }); }
         }, h('span', { 'aria-hidden': 'true' }, '␣')),
+        layoutBtn,
         h('button', {
           class: 'btn btn-primary btn-big', style: { flex: '1 1 auto' }, type: 'button',
           onclick: function () { if (field.value.trim()) speakBig(field.value.trim(), null, 'write'); }

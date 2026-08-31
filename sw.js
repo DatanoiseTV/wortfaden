@@ -1,5 +1,5 @@
 /* Offline cache. Bump CACHE when any shell file changes. */
-var CACHE = 'wortfaden-v2';
+var CACHE = 'wortfaden-v3';
 var SHELL = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
   'js/i18n.js', 'js/data-words.js', 'js/data-phrases.js', 'js/data-board.js', 'js/board.js', 'js/spelling.js',
@@ -39,14 +39,14 @@ var VOICE_HOSTS = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com'];
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   var url = new URL(e.request.url);
+
   if (url.origin !== self.location.origin) {
     if (VOICE_HOSTS.indexOf(url.hostname) < 0) return;   // never the weights
-
+    // The voice runtime is immutable per version: cache-first is right here.
     e.respondWith(
       caches.match(e.request).then(function (hit) {
         if (hit) return hit;
         return fetch(e.request).then(function (res) {
-          // Opaque responses are fine here: they replay correctly offline.
           var copy = res.clone();
           caches.open(CACHE + '-voice').then(function (c) { c.put(e.request, copy); });
           return res;
@@ -55,23 +55,24 @@ self.addEventListener('fetch', function (e) {
     );
     return;
   }
+
+  /* The app's own files go network first, with the cache as the fallback.
+   *
+   * Cache-first was wrong here: after a deploy the first visit still ran the
+   * previous version, and a page that had already loaded stale scripts stayed
+   * stale until a second reload. For an app someone may depend on to ask for
+   * help, being one reload behind is not an acceptable default. Offline still
+   * works — that is exactly what the fallback is for. */
   e.respondWith(
-    caches.match(e.request).then(function (hit) {
-      if (hit) {
-        // Refresh in the background so an update lands on the next visit.
-        fetch(e.request).then(function (res) {
-          if (res && res.ok) caches.open(CACHE).then(function (c) { c.put(e.request, res.clone()); });
-        }).catch(function () {});
-        return hit;
+    fetch(e.request).then(function (res) {
+      if (res && res.ok) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
       }
-      return fetch(e.request).then(function (res) {
-        if (res && res.ok) {
-          var copy = res.clone();
-          caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
-        }
-        return res;
-      }).catch(function () {
-        return caches.match('index.html');
+      return res;
+    }).catch(function () {
+      return caches.match(e.request).then(function (hit) {
+        return hit || caches.match('index.html');
       });
     })
   );

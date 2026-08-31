@@ -329,7 +329,22 @@ window.COMPOSE = {
     { s: 'Es geht mir', next: ['gut', 'besser als gestern', 'nicht gut', 'schlechter als gestern', 'so wie gestern'] },
     { s: 'Ich freue mich', next: ['auf den Besuch', 'auf zu Hause', 'dass du da bist', 'auf das Essen', 'auf morgen'] },
     { s: 'Erzähl mir', next: ['von deinem Tag', 'was zu Hause los ist', 'etwas Schönes', 'von früher', 'wer gefragt hat'] },
-    { s: 'Ich bin', next: ['müde', 'wach', 'traurig', 'wütend', 'erleichtert', 'nervös', 'zufrieden', 'ungeduldig'] }
+    { s: 'Ich bin', next: ['müde', 'wach', 'traurig', 'wütend', 'erleichtert', 'nervös', 'zufrieden', 'ungeduldig', 'stolz', 'einsam', 'zuversichtlich', 'überfordert'] },
+    { s: 'Ich denke', next: ['viel nach', 'an früher', 'an zu Hause', 'an dich', 'dass es besser wird', 'dass ich Zeit brauche'] },
+    { s: 'Ich glaube', next: ['das schaffe ich', 'das wird noch dauern', 'ich brauche Hilfe', 'es geht aufwärts', 'ich habe genug für heute'] },
+    { s: 'Ich hätte gern', next: ['einen Kaffee', 'einen Tee', 'etwas zu essen', 'meine Ruhe', 'Besuch', 'frische Luft', 'ein Bad', 'saubere Sachen'] },
+    { s: 'Ich habe Angst vor', next: ['der Untersuchung', 'der Operation', 'der Nacht', 'dem Alleinsein', 'den Schmerzen', 'nichts'] },
+    { s: 'Ich freue mich über', next: ['deinen Besuch', 'die Blumen', 'die Nachricht', 'jeden Fortschritt', 'das Essen'] },
+    { s: 'Ich ärgere mich über', next: ['den Lärm', 'das Warten', 'mich selbst', 'die Situation'] },
+    { s: 'Danke für', next: ['deinen Besuch', 'deine Hilfe', 'deine Geduld', 'die Blumen', 'alles'] },
+    { s: 'Entschuldigung für', next: ['das Warten', 'meine Ungeduld', 'die Umstände'] },
+    { s: 'Ich vermisse', next: ['dich', 'zu Hause', 'mein Bett', 'die Ruhe', 'meine Familie', 'das Draußensein'] },
+    { s: 'Weißt du, ob', next: ['jemand kommt', 'es Post gibt', 'die Visite bald ist', 'ich aufstehen darf'] },
+    { s: 'Kannst du mir sagen', next: ['wie spät es ist', 'was heute passiert', 'wie es zu Hause läuft', 'was der Arzt gesagt hat'] },
+    { s: 'Heute war', next: ['ein guter Tag', 'ein harter Tag', 'viel los', 'sehr ruhig', 'die Therapie gut'] },
+    { s: 'Morgen möchte ich', next: ['aufstehen', 'nach draußen', 'Besuch haben', 'mehr üben', 'ausruhen'] },
+    { s: 'Mir tut', next: ['der Kopf weh', 'der Nacken weh', 'der Rücken weh', 'der Arm weh', 'das Bein weh', 'nichts weh'] },
+    { s: 'Ich brauche Hilfe beim', next: ['Aufstehen', 'Waschen', 'Anziehen', 'Essen', 'Telefonieren', 'Lesen'] }
   ],
   en: [
     { s: 'I would like to', next: ['get up', 'sleep', 'go home', 'have a shower', 'eat', 'drink', 'make a call', 'watch television', 'read', 'be alone', 'have visitors', 'get some air', 'talk with you', 'do this myself'] },
@@ -344,7 +359,22 @@ window.COMPOSE = {
     { s: 'I am doing', next: ['well', 'better than yesterday', 'not well', 'worse than yesterday', 'the same as yesterday'] },
     { s: 'I am looking forward to', next: ['the visit', 'going home', 'you being here', 'the food', 'tomorrow'] },
     { s: 'Tell me', next: ['about your day', 'what is happening at home', 'something nice', 'about the old days', 'who asked after me'] },
-    { s: 'I am', next: ['tired', 'awake', 'sad', 'angry', 'relieved', 'nervous', 'content', 'impatient'] }
+    { s: 'I am', next: ['tired', 'awake', 'sad', 'angry', 'relieved', 'nervous', 'content', 'impatient', 'proud', 'lonely', 'hopeful', 'overwhelmed'] },
+    { s: 'I think', next: ['a lot', 'about the old days', 'about home', 'about you', 'it will get better', 'I need time'] },
+    { s: 'I believe', next: ['I can do this', 'it will take a while', 'I need help', 'things are improving', 'I have had enough for today'] },
+    { s: 'I would like', next: ['a coffee', 'a tea', 'something to eat', 'some peace', 'visitors', 'fresh air', 'a bath', 'clean clothes'] },
+    { s: 'I am afraid of', next: ['the examination', 'the operation', 'the night', 'being alone', 'the pain', 'nothing'] },
+    { s: 'I am glad about', next: ['your visit', 'the flowers', 'the news', 'every bit of progress', 'the food'] },
+    { s: 'I am annoyed by', next: ['the noise', 'the waiting', 'myself', 'the situation'] },
+    { s: 'Thank you for', next: ['your visit', 'your help', 'your patience', 'the flowers', 'everything'] },
+    { s: 'Sorry for', next: ['the wait', 'my impatience', 'the trouble'] },
+    { s: 'I miss', next: ['you', 'home', 'my own bed', 'the quiet', 'my family', 'being outside'] },
+    { s: 'Do you know whether', next: ['anyone is coming', 'there is post', 'the ward round is soon', 'I am allowed to get up'] },
+    { s: 'Can you tell me', next: ['what time it is', 'what is happening today', 'how things are at home', 'what the doctor said'] },
+    { s: 'Today was', next: ['a good day', 'a hard day', 'very busy', 'very quiet', 'a good therapy session'] },
+    { s: 'Tomorrow I would like to', next: ['get up', 'go outside', 'have visitors', 'practise more', 'rest'] },
+    { s: 'It hurts in', next: ['my head', 'my neck', 'my back', 'my arm', 'my leg', 'nowhere'] },
+    { s: 'I need help with', next: ['getting up', 'washing', 'dressing', 'eating', 'phoning', 'reading'] }
   ]
 };
 
@@ -462,6 +492,8 @@ window.CONNECTORS = {
     { w: 'aber', comma: true },
     { w: 'oder', comma: false },
     { w: 'denn', comma: true },
+    { w: 'sondern', comma: true },
+    { w: 'und auch', comma: false },
     { newSentence: true }
   ],
   en: [
@@ -471,6 +503,8 @@ window.CONNECTORS = {
     { w: 'because', comma: false },
     { w: 'so', comma: true },
     { w: 'and then', comma: false },
+    { w: 'and also', comma: false },
+    { w: 'or maybe', comma: false },
     { newSentence: true }
   ]
 };

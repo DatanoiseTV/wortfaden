@@ -16,9 +16,11 @@
  * doubled letters stop mattering too. English uses a spelling-confusion fold
  * instead, because English errors are orthographic more than phonetic.
  *
- * Results come back in tiers — exact prefix, then phonetic, then one typo —
- * and are ranked inside each tier by word frequency, with the person's own
- * words pushed to the front.
+ * Candidates are scored on ONE scale rather than sorted into hard tiers.
+ * Tiers alone are wrong: "glaz" is a literal prefix of "Glazial", so a hard
+ * exact-prefix tier put a mineralogy term ahead of "Glas". The score trades
+ * spelling distance against word frequency instead, so a common word one edit
+ * away beats a rare word that happens to start with the same letters.
  */
 (function () {
   var LEX = {};        // lang -> { words, gender, norm, pho, ready }
@@ -220,32 +222,88 @@
     return out;
   }
 
+  /* ---------- what the sentence expects next ----------
+   * Not a parser, and not pretending to be one: two rules that are reliable
+   * in both languages and cover most of the benefit.
+   *   after a determiner  -> a noun is coming, and in German its gender is
+   *                          already fixed by the article
+   *   after a subject pronoun -> a verb is coming, so nouns go down
+   * Everything else is left alone. */
+  var DET = {
+    de: {
+      der: 'm', die: 'f', das: 'n', dem: 'mn', den: 'm', des: 'mn',
+      ein: 'mn', eine: 'f', einen: 'm', einem: 'mn', einer: 'f', eines: 'mn',
+      mein: 'mn', meine: 'f', meinen: 'm', meinem: 'mn', meiner: 'f',
+      dein: 'mn', deine: 'f', deinen: 'm', sein: 'mn', seine: 'f', ihre: 'f', ihr: 'mn',
+      kein: 'mn', keine: 'f', keinen: 'm', dieser: 'm', diese: 'f', dieses: 'n',
+      viel: '', viele: '', jede: 'f', jeder: 'm', jedes: 'n', welche: 'f', welcher: 'm'
+    },
+    en: { the: '', a: '', an: '', my: '', your: '', his: '', her: '', our: '', their: '', this: '', that: '', some: '', any: '', no: '' }
+  };
+  var SUBJ = {
+    de: ['ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'man'],
+    en: ['i', 'you', 'he', 'she', 'it', 'we', 'they']
+  };
+
+  function context(before, lang) {
+    var words = String(before || '').trim().split(/\s+/);
+    var last = fold(words[words.length - 1] || '');
+    if (!last) return null;
+    var det = DET[lang] && DET[lang][last];
+    if (det !== undefined) return { want: 'noun', gender: det };
+    if (SUBJ[lang] && SUBJ[lang].indexOf(last) >= 0) return { want: 'verb' };
+    return null;
+  }
+
   var Predict = {
-    _cologne: cologne, _enFold: enFold, _fold: fold,
+    _cologne: cologne, _enFold: enFold, _fold: fold, _context: context,
     loaded: function (lang) { return !!(LEX[lang] && LEX[lang].ready); },
     load: function (lang, done) { ensure(lang, function () { if (done) done(); }); },
 
-    /* suggest(query, lang, limit) -> [{word, gender, tier}] */
-    suggest: function (query, lang, limit) {
+    /* suggest(query, lang, limit, before) -> [{word, gender, tier}]
+     * `before` is the text already written, used only for the two grammar
+     * rules above. */
+    suggest: function (query, lang, limit, before) {
       limit = limit || 10;
+      var ctx = context(before, lang);
       var q = fold(query);
       if (!q) return [];
       var lex = LEX[lang];
       var qk = key(query, lang);
-      var seen = {}, tiers = [[], [], []];
+      var seen = {}, all = [];
+
+      /* One edit of spelling distance is worth about this many places of
+         frequency rank. Tuned so "glaz" gives Glas (rank 1373, one edit away)
+         ahead of Glazial (rank 69127, an exact prefix), while an exact prefix
+         still wins whenever the frequencies are anywhere near each other. */
+      var EDIT = 10000;
 
       function add(word, gender, tier, rank, cand) {
         var k = word.toLowerCase();
         if (seen[k] !== undefined) return;
         seen[k] = 1;
-        var score = rank;
-        if (tier === 1) {
-          /* The Cologne code is deliberately coarse: "deke", "dich" and "Tag"
-             all share one key, so pure frequency would bury the word actually
-             being reached. Order by how close the spelling is first. */
-          score = prefixDistance(q, cand || fold(word)) * 4000 + rank;
+        var dist = prefixDistance(q, cand || fold(word));
+        var score = dist === 0 ? rank * 0.5 : dist * EDIT + rank;
+
+        /* German marks nouns with a capital, so "is this a noun" is knowable
+           without a tagger. After "die" a noun is coming, and its gender is
+           already decided — so "die ta…" should offer Tablette and Tasche
+           before tanzen. */
+        if (ctx) {
+          var isNoun = lang === 'de' ? /^[A-ZÄÖÜ]/.test(word) : false;
+          if (ctx.want === 'noun' && lang === 'de') {
+            if (isNoun) {
+              score -= 6000;
+              if (ctx.gender && gender && ctx.gender.indexOf(gender) >= 0) score -= 6000;
+              else if (ctx.gender && gender) score += 4000;   // wrong gender, still possible
+            } else {
+              score += 8000;
+            }
+          } else if (ctx.want === 'verb' && lang === 'de' && isNoun) {
+            score += 6000;
+          }
         }
-        tiers[tier].push({ word: word, gender: gender, tier: tier, rank: score });
+        all.push({ word: word, gender: gender, tier: tier, rank: score, dist: dist });
       }
 
       // Personal and practice vocabulary, ranked ahead of the corpus.
@@ -263,28 +321,24 @@
         }
         // Phonetic tier only from three characters on: below that it matches
         // half the language and the suggestions stop meaning anything.
-        if (q.length >= 3 && tiers[0].length + tiers[1].length < limit * 3) {
+        if (q.length >= 3 && all.length < limit * 6) {
           for (i2 = 0; i2 < n2; i2++) {
             if (qk && lex.pho[i2].indexOf(qk) === 0) add(lex.words[i2], lex.gender[i2], 1, i2, lex.norm[i2]);
           }
         }
         // One typo anywhere, over the same-length prefix region.
-        if (q.length >= 4 && tiers[0].length + tiers[1].length < limit) {
+        if (q.length >= 4 && all.length < limit) {
           for (i2 = 0; i2 < n2; i2++) {
             var cand = lex.norm[i2];
             if (cand.length < q.length - 1) continue;
-            if (within(q, cand.slice(0, q.length + 1), 1)) add(lex.words[i2], lex.gender[i2], 2, i2);
-            if (tiers[2].length > 60) break;
+            if (within(q, cand.slice(0, q.length + 1), 1)) add(lex.words[i2], lex.gender[i2], 2, i2, cand);
+            if (all.length > limit + 60) break;
           }
         }
       }
 
-      var out = [];
-      tiers.forEach(function (t) {
-        t.sort(function (a, b) { return a.rank - b.rank; });
-        out = out.concat(t);
-      });
-      return out.slice(0, limit);
+      all.sort(function (a, b) { return a.rank - b.rank; });
+      return all.slice(0, limit);
     }
   };
 

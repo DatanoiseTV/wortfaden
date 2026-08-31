@@ -143,8 +143,9 @@ Three ways to say something, in order of how much they let you say:
 
 - **Schnell** — 95 tiles across nine categories: answers, needs, pain,
   feelings, closeness, the day, agency, questions, people. One tap.
-- **Satz bauen** — a starter plus a continuation, then **"Mehr sagen"** to
-  chain another clause, and another, with no limit. Two taps per clause.
+- **Satz bauen** — 28 sentence starters and about 180 one-clause utterances,
+  then **"Mehr sagen"** to chain another clause, and another, with no limit.
+  Two taps per clause; roughly 200,000 two-clause combinations.
   Only connectors that stay grammatical under plain concatenation are offered:
   German gets *und / aber / oder / denn*, because *weil* and *obwohl* need the
   verb at the end and *dann / deshalb* need inversion — neither is something a
@@ -153,8 +154,8 @@ Three ways to say something, in order of how much they let you say:
   sentence** button covers everything else, so length stays unlimited.
   Anything the tiles cannot reach can be handed over to free writing mid-thought.
 - **Schreiben** — free text with error-tolerant word prediction over a
-  20,000-word dictionary per language, plus a large letter grid for anyone who
-  cannot use the on-screen keyboard. Unlimited.
+  dictionary of 136,000 German and 70,000 English words, on a large on-screen
+  keyboard that switches between QWERTZ, alphabetical, and numbers. Unlimited.
 
 Whatever is spoken is also shown **full screen in the largest type that fits**,
 because in a hospital room the audio is the unreliable channel — masks,
@@ -177,10 +178,24 @@ makes ä/e, ie/i and doubled letters stop mattering. English uses a
 spelling-confusion fold instead, because English errors are orthographic more
 than phonetic.
 
-Results arrive in tiers — exact prefix, then phonetic, then one typo — ranked
-inside each tier by how close the spelling actually is and then by word
-frequency. Her own words and the practice vocabulary are pushed to the front,
-and German nouns carry their article.
+Candidates are scored on one scale rather than sorted into hard tiers. Tiers
+alone were wrong: "glaz" is a literal prefix of "Glazial", so an exact-prefix
+tier put a mineralogy term ahead of "Glas". The score trades spelling distance
+against word frequency, so a common word one edit away beats a rare word that
+merely starts with the same letters. Her own words and the practice vocabulary
+are pushed to the front, and German nouns carry their article.
+
+**It also knows what the sentence expects next.** Not a parser — two rules that
+hold up in both languages. After a determiner a noun is coming, and in German
+the article has already fixed its gender; after a subject pronoun a verb is
+coming. Since German capitalises nouns, "is this a noun" is knowable without a
+tagger:
+
+| typed | suggestions |
+|---|---|
+| `ich möchte eine ta` | **die** Tablette · **die** Tasse · **die** Tasche · **die** Tante |
+| `ich möchte den ta` | **der** Tag · **der** Tanz · **der** Tatort · **der** Täter |
+| `ich ta` | tagen · tatsächlich · tanzen |
 
 Measured on the real lists, 1.3 ms mean and 4.3 ms worst case per keystroke:
 
@@ -193,6 +208,17 @@ Measured on the real lists, 1.3 ms mean and 4.3 ms worst case per keystroke:
 | `glaz` | **das Glas** · die Klasse · Gläser |
 | `tirsty` | **thirsty** |
 | `medisin` | **medicine** · medicines · medicinal |
+| `steckdoze` | **die Steckdose** · Steckdosen |
+| `sinthesizer` | **der Synthesizer** |
+
+### The keyboard
+
+Three layouts behind one key: **QWERTZ/QWERTY** for anyone who has typed for
+decades, **alphabetical** for anyone hunting letter by letter, and **numbers**.
+
+The number keys carry dice pips as well as the digit. A quantity you can point
+at works when the number word will not come — how many, which room, how long —
+and numbers are among the words that go first.
 
 ### Follow-up chains
 
@@ -322,6 +348,9 @@ worker (so no offline caching) and minus the neural voice.
 
 It is also published from this repository to GitHub Pages at
 <https://datanoisetv.github.io/wortfaden/>; pushing to `main` redeploys it.
+The service worker serves the app's own files network-first with the cache as
+the fallback, so a deploy takes effect on the next load rather than the one
+after, while offline still works.
 To host it elsewhere, serve the folder over HTTPS from any static host — all
 paths are relative, so a subdirectory works fine.
 
@@ -337,7 +366,7 @@ js/
   data-phrases.js       30 everyday sentences in rhythmic chunks + 7 series
   data-board.js         communication board: 95 tiles, compose grammar, chains
   data-encouragement.js encouragement lines (adult in tone, deliberately)
-  predict.js            error-tolerant word prediction (Kölner Phonetik)
+  predict.js            error-tolerant, grammar-aware word prediction
   store.js              local persistence, Leitner boxes, wellbeing log
   programme.js          the training programme: stages, ladder, variation
   spelling.js           plausible misspelling generator
@@ -351,11 +380,12 @@ js/
   app.js                router, chrome, session engine
 sw.js                   offline cache
 data/
-  lexicon-de.js         20,000 German words, capitalised, with gender
-  lexicon-en.js         20,000 English words
+  lexicon-de.js         136,000 German words, capitalised, with gender
+  lexicon-en.js         70,000 English words
   LICENSE-DATA.md       CC BY-SA 4.0 attribution for the two lists
 tools/
   build-lexicon.py      regenerates the lexicons from their upstream sources
+  check-css.py          guards the stylesheet against structural damage
 ```
 
 ### Licences
@@ -391,7 +421,13 @@ real thing:
 - The communication board driven end to end: follow-up chains, partner-name
   substitution, the log, and back navigation stepping out one level at a time.
 - Word prediction against deliberately misspelled input in both languages,
-  with per-query timing.
+  with per-query timing (1.3 ms mean over 20k, 5.7 ms over 136k).
+- Layout on five phone sizes down to 320x568, asserting that neither the page
+  nor the task area scrolls where it should not.
+- `tools/check-css.py`: brace balance and the presence of the global
+  `box-sizing` rule. A single stray closing brace once dropped that rule and
+  made every padded element 38 px too wide on a phone — nothing errored, and
+  it was only visible as "the mobile view overflows".
 
 ---
 
@@ -413,3 +449,8 @@ real thing:
 - The dictionary comes from a subtitle corpus, so it carries a few film names
   and transliterations in the long tail ("brody", "dexter"). Filtering removes
   the transcription noise but not every proper noun.
+- The German lexicon is 1.8 MB uncompressed (about 550 KB over the wire) and
+  takes roughly 200 ms to index on a laptop. It is loaded only when the
+  writing view is opened, and cached from then on.
+- Word class is only knowable for German nouns, via their capital. English has
+  no part-of-speech data here, so the grammar rules are German-only.

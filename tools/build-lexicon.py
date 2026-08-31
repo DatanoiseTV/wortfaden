@@ -7,6 +7,8 @@
   German casing + gender  : gambolputty/german-nouns (from Wiktionary)
                             https://github.com/gambolputty/german-nouns
                             licensed CC BY-SA 4.0
+  English validity filter : dwyl/english-words (Unlicense, public domain)
+                            https://github.com/dwyl/english-words
 
 Both sources are CC BY-SA 4.0, so the generated files carry that licence too;
 see data/LICENSE-DATA.md. The app code stays MIT.
@@ -19,12 +21,22 @@ as a bonus.
 Frequencies themselves are not shipped — the line order IS the rank, which
 saves about a third of the file.
 
+Depth is chosen from where each corpus stops being trustworthy. Sampling the
+subtitle lists, German is still real vocabulary at rank 60,000 (kaffeekanne,
+sportskanone, dementieren) while English has decayed into names and fragments
+by rank 40,000 (flaco, eusebio, 'av, wantyou). So English past the trusted
+head is kept only where a public-domain dictionary confirms the word exists,
+and German is instead EXTENDED with Wiktionary nouns the subtitles never
+contained — which is where words like Steckdose, Katheter and Synthesizer
+come from.
+
 Usage:  python3 tools/build-lexicon.py [--limit 20000]
 """
 import argparse, csv, os, re, sys, urllib.request
 
-FREQ = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/{0}/{0}_50k.txt"
+FREQ = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/{0}/{0}_full.txt"
 NOUNS = "https://raw.githubusercontent.com/gambolputty/german-nouns/main/german_nouns/nouns.csv"
+ENDICT = "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt"
 CACHE = os.path.join(os.path.dirname(__file__), ".cache")
 
 WORD_RE = {
@@ -118,56 +130,103 @@ def german_nouns():
                 if v in ("m", "f", "n"):
                     gen = v
                     break
-            forms = [lemma]
+            forms = [(lemma, True)]
             for key in ("nominativ plural", "nominativ plural 1"):
                 v = (row.get(key) or "").strip()
                 if v and re.match(r"^[A-ZÄÖÜ][a-zäöüßA-ZÄÖÜ-]{1,23}$", v):
-                    forms.append(v)
-            for f in forms:
+                    forms.append((v, False))
+            for f, is_lemma in forms:
                 lo = f.lower()
                 # first writer wins: lemmas are read before their own plurals,
                 # and earlier lemmas are the more basic words
                 if lo not in out:
-                    out[lo] = (f, gen if f == lemma else "")
+                    out[lo] = (f, gen if is_lemma else "", is_lemma)
     return out
 
 
-def build(lang, limit, nouns=None):
-    path = fetch(FREQ.format(lang), "%s_50k.txt" % lang)
+def english_dictionary():
+    """A public-domain word list, used only to confirm that a word exists."""
+    path = fetch(ENDICT, "words_alpha.txt")
+    with open(path, encoding="utf-8") as fh:
+        return set(w.strip() for w in fh if w.strip())
+
+
+# How deep each corpus stays trustworthy on its own, and how deep it is worth
+# looking at all once a dictionary is vouching for the words. Sampled from the
+# lists themselves: German is still real vocabulary at rank 60,000
+# (kaffeekanne, sportskanone, dementieren) while English has decayed into
+# names and fragments by 40,000 (flaco, eusebio, 'av, wantyou).
+TRUSTED = {"de": 60000, "en": 30000}
+SCANNED = {"de": 60000, "en": 150000}
+
+
+def build(lang, limit, nouns=None, endict=None):
+    path = fetch(FREQ.format(lang), "%s_full.txt" % lang)
     rx = WORD_RE[lang]
     lines, seen = [], set()
+    rank = 0
     with open(path, encoding="utf-8") as fh:
         for raw in fh:
+            rank += 1
+            if rank > SCANNED[lang] or len(lines) >= limit:
+                break
             word = raw.split(" ")[0].strip()
             if not word or not rx.match(word) or JUNK.search(word):
                 continue
             if lang == "en" and len(word) == 1 and word not in ("a", "i"):
                 continue
+            # Past the trusted head, keep only what a dictionary confirms.
+            if rank > TRUSTED[lang] and endict is not None and word not in endict:
+                continue
             display, gen = word, ""
             if nouns and word in nouns and word not in NEVER_CAPITALISE:
-                display, gen = nouns[word]
+                display, gen = nouns[word][0], nouns[word][1]
             key = display.lower()
             if key in seen:
                 continue
             seen.add(key)
             lines.append(display + ("|" + gen if gen else ""))
+
+    # German gains the curated Wiktionary nouns the subtitles never carried —
+    # Steckdose, Katheter, Synthesizer. They are ordered by length, because a
+    # shorter noun is the likelier everyday word and there is no frequency to
+    # go on this far out.
+    if lang == "de" and nouns and len(lines) < limit:
+        extra = []
+        for lo in nouns:
+            form, gen, is_lemma = nouns[lo]
+            # Lemmas only: a prefix search reaches "Steckdosen" from
+            # "Steckdose" anyway, and dropping the plurals halves the file.
+            if not is_lemma or lo in seen or len(lo) < 3 or len(lo) > 22:
+                continue
+            if not re.match(r"^[a-zäöüß]+$", lo):
+                continue
+            extra.append((len(lo), lo, form, gen))
+        extra.sort()
+        for _, lo, form, gen in extra:
             if len(lines) >= limit:
                 break
+            seen.add(lo)
+            lines.append(form + ("|" + gen if gen else ""))
     return lines
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--limit", type=int, default=20000)
+    ap.add_argument("--limit", type=int, default=90000)
     args = ap.parse_args()
 
     nouns = german_nouns()
     sys.stderr.write("german noun forms: %d\n" % len(nouns))
+    endict = english_dictionary()
+    sys.stderr.write("english dictionary: %d\n" % len(endict))
 
     root = os.path.join(os.path.dirname(__file__), "..", "data")
     os.makedirs(root, exist_ok=True)
     for lang in ("de", "en"):
-        lines = build(lang, args.limit, nouns if lang == "de" else None)
+        lines = build(lang, args.limit,
+                      nouns if lang == "de" else None,
+                      endict if lang == "en" else None)
         body = "\\n".join(lines)
         out = ("/* Generated by tools/build-lexicon.py — do not edit by hand.\n"
                " * Word list derived from OpenSubtitles frequency data and (for German)\n"
